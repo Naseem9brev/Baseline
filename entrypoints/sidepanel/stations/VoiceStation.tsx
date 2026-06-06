@@ -400,22 +400,27 @@ export default function VoiceStation({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
-        <p className="text-xs uppercase tracking-wide text-[var(--ink-3)]">Voice check</p>
-        <p className="mt-2 text-lg leading-relaxed text-[var(--ink)]">{INSTRUCTION}</p>
-        <p className="mt-3 text-sm text-[var(--ink-2)]">
+      <div className="card">
+        <p className="eyebrow">Voice check</p>
+        <p className="serif-h mt-2" style={{ fontSize: 18, lineHeight: 1.4 }}>
+          {INSTRUCTION}
+        </p>
+        <p className="mt-3" style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
           Press the button to start, say “ahhhh”, then press again to stop. Or hold{' '}
-          <kbd className="rounded border border-[var(--ink-4)] bg-[var(--paper-sunk)] px-1.5 py-0.5 font-mono text-xs">
+          <kbd
+            className="rounded border px-1.5 py-0.5 font-mono text-xs"
+            style={{ borderColor: 'var(--line)', background: 'var(--paper-sunk)', color: 'var(--ink-2)' }}
+          >
             Space
           </kbd>{' '}
           while you speak, then release.
         </p>
       </div>
 
-      <div className="grid place-items-center gap-4 rounded-xl bg-[#2B2722] p-6">
+      <div className="card flat wash grid place-items-center gap-4">
         <MicMeter level={level} active={recording} />
 
-        <p className="text-center text-sm text-white">
+        <p className="text-center" style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
           {phase === 'processing'
             ? 'Analysing with praatfan…'
             : recording
@@ -437,11 +442,7 @@ export default function VoiceStation({
           type="button"
           disabled={instructionsBusy}
           onClick={() => void playInstructions()}
-          className={
-            'min-h-12 min-w-[14rem] rounded-xl px-6 text-base font-semibold transition-colors ' +
-            'bg-indigo-500 text-white hover:bg-indigo-600' +
-            (instructionsBusy ? ' cursor-not-allowed opacity-60' : '')
-          }
+          className="btn btn-ghost"
         >
           {instructionAudio === 'loading'
             ? 'Loading…'
@@ -456,13 +457,8 @@ export default function VoiceStation({
           type="button"
           disabled={phase === 'processing' || !canRecord}
           onClick={() => void toggleRecording()}
-          className={
-            'min-h-12 min-w-[12rem] rounded-xl px-6 text-base font-semibold transition-colors ' +
-            (recording
-              ? 'bg-[var(--jujube)] text-white hover:bg-[var(--jujube)]'
-              : 'bg-[var(--ginseng)] text-white hover:bg-[var(--ginseng)]') +
-            (phase === 'processing' || !canRecord ? ' cursor-not-allowed opacity-60' : '')
-          }
+          className="btn btn-primary"
+          style={recording ? { background: 'var(--jujube)', color: '#FBF3E6' } : undefined}
         >
           {phase === 'processing'
             ? 'Please wait…'
@@ -473,28 +469,24 @@ export default function VoiceStation({
       </div>
 
       {needsMicAccess ? (
-        <div className="space-y-2 rounded-lg border border-[var(--ginseng-soft)] bg-[var(--ginseng-wash)] p-3">
-          <p className="text-sm text-[var(--ginseng-deep)]">{MIC_PERMISSION_COPY.sidePanelNote}</p>
+        <div className="card tint space-y-2">
+          <p style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>{MIC_PERMISSION_COPY.sidePanelNote}</p>
           <button
             type="button"
             disabled={micBusy}
             onClick={() => void grantMicrophoneAccess().then((ok) => ok && void startRecording())}
-            className="min-h-11 w-full rounded-lg bg-[var(--ginseng)] text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)] disabled:opacity-60"
+            className="btn btn-primary"
           >
             {micBusy ? 'Waiting for Chrome…' : 'Allow microphone (opens tab)'}
           </button>
-          <button
-            type="button"
-            onClick={openExtensionMicSettings}
-            className="min-h-11 w-full rounded-lg border border-[var(--ginseng-soft)] bg-white text-sm font-medium text-[var(--ginseng-deep)] hover:bg-[var(--ginseng-wash)]"
-          >
+          <button type="button" onClick={openExtensionMicSettings} className="btn btn-ghost">
             Open extension microphone settings
           </button>
         </div>
       ) : null}
 
       {hint && !needsMicAccess ? (
-        <p className="rounded-lg border border-[var(--ginseng-soft)] bg-[var(--monitor-soft)] px-3 py-2 text-sm text-[#6F4A21]">
+        <p className="card tint" style={{ fontSize: 13.5, color: 'var(--ink-2)', padding: '10px 12px' }}>
           {hint}
         </p>
       ) : null}
@@ -515,7 +507,7 @@ function MicMeter({ level, active }: { level: number; active: boolean }) {
             className="w-3 rounded-full transition-all"
             style={{
               height: `${20 + i * 10}px`,
-              backgroundColor: on ? '#34d399' : 'rgba(255,255,255,0.2)',
+              backgroundColor: on ? 'var(--ginseng)' : 'var(--paper-sunk)',
             }}
           />
         );

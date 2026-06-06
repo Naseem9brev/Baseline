@@ -227,6 +227,13 @@ button {
   font-size: 15px;
   padding: 12px 16px;
 }
+/* icon + label button row */
+.btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 
 .card {
   background: var(--paper-3);
@@ -417,6 +424,9 @@ button {
   border-radius: 999px;
   background: var(--ginseng);
   display: block;
+}
+.wave i.off {
+  background: var(--paper-sunk);
 }
 
 /* tiny helpers */

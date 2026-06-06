@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { MemoryDifficulty, RawReactionFeatures } from '@/lib/analysis/types';
+import { Ic } from '../components/icons';
 
 const TAP_TRIALS = 3;
 const CHOICE_TRIALS = 5;
@@ -31,27 +32,28 @@ const DIFFICULTY_CONFIG: Record<
 };
 
 const PAD_FREQS = [262, 294, 330, 392, 440, 494, 523, 587, 659];
+// On-palette pad fills (CSS values, applied via inline style). One flashes at a time.
 const PAD_COLORS = [
-  'bg-[var(--sage)]',
-  'bg-[var(--sage)]',
-  'bg-[var(--saffron)]',
-  'bg-[var(--jujube)]',
-  'bg-violet-500',
-  'bg-orange-400',
-  'bg-[var(--ginseng)]',
-  'bg-pink-500',
-  'bg-lime-500',
+  'var(--sage)',
+  'var(--ginseng)',
+  'var(--saffron)',
+  'var(--jujube)',
+  'var(--plum)',
+  'var(--clay)',
+  'var(--rose)',
+  'var(--sage-deep)',
+  'var(--ginseng-deep)',
 ];
 const PAD_LIT = [
-  'bg-[var(--sage)]',
-  'bg-[var(--sage-soft)]',
-  'bg-[var(--ginseng-soft)]',
-  'bg-[var(--jujube-soft)]',
-  'bg-violet-300',
-  'bg-orange-200',
-  'bg-[var(--ginseng-soft)]',
-  'bg-pink-300',
-  'bg-lime-300',
+  'var(--sage-soft)',
+  'var(--ginseng-soft)',
+  'var(--saffron-soft)',
+  'var(--jujube-soft)',
+  'var(--plum-soft)',
+  'var(--ginseng-soft)',
+  'var(--sage-soft)',
+  'var(--sage-soft)',
+  'var(--ginseng-soft)',
 ];
 
 export default function ReactionStation({
@@ -115,27 +117,23 @@ export default function ReactionStation({
 
 function SubProgress({ idx }: { idx: number }) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5">
-      {SUB_STEPS.map((s, i) => (
-        <div key={s.key} className="flex items-center gap-1.5">
-          <div
-            className={
-              'flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ' +
-              (i === idx
-                ? 'bg-[var(--ginseng)] text-white'
-                : i < idx
-                  ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]'
-                  : 'bg-[var(--paper-sunk)] text-[var(--ink-3)]')
-            }
-          >
-            <span>{i < idx ? '✓' : i + 1}</span>
-            <span>{s.label}</span>
-          </div>
-          {i < SUB_STEPS.length - 1 && (
-            <span className="text-[var(--ink-4)] text-xs">›</span>
-          )}
-        </div>
-      ))}
+    <div className="steps flex-wrap" style={{ justifyContent: 'center' }}>
+      {SUB_STEPS.map((s, i) => {
+        const state = i < idx ? 'done' : i === idx ? 'on' : 'todo';
+        return (
+          <Fragment key={s.key}>
+            <div className={`step-pill ${state}`} style={{ fontSize: 11 }}>
+              <span className="step-num">
+                {i < idx ? <Ic.check width={10} height={10} /> : i + 1}
+              </span>
+              {s.label}
+            </div>
+            {i < SUB_STEPS.length - 1 && (
+              <span style={{ color: 'var(--ink-4)', fontSize: 12 }}>›</span>
+            )}
+          </Fragment>
+        );
+      })}
     </div>
   );
 }
@@ -215,12 +213,12 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
     timer.current = window.setTimeout(armAfterPaint, delay);
   }
 
-  const bg =
+  const bgColor =
     state === 'ready'
-      ? 'bg-[var(--sage)]'
+      ? 'var(--sage)'
       : state === 'tooEarly'
-        ? 'bg-[var(--jujube)]'
-        : 'bg-[var(--ink)]';
+        ? 'var(--jujube)'
+        : 'var(--ink)';
   const label =
     state === 'ready'
       ? 'TAP!'
@@ -230,16 +228,17 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-[var(--ink-2)]">
+      <p className="text-center" style={{ fontSize: 14, color: 'var(--ink-2)' }}>
         Reaction test · trial {Math.min(trial + 1, TAP_TRIALS)} of {TAP_TRIALS}
       </p>
       <button
         onClick={handleClick}
-        className={`grid h-48 w-full place-items-center rounded-xl text-xl font-bold text-white transition-colors ${bg}`}
+        className="grid h-48 w-full place-items-center rounded-xl text-xl font-bold transition-colors"
+        style={{ background: bgColor, color: '#FBF3E6' }}
       >
         {label}
       </button>
-      <p className="text-center text-[11px] text-[var(--ink-3)]">
+      <p className="muted text-center" style={{ fontSize: 11 }}>
         Tap the box the instant it turns green.
       </p>
     </div>
@@ -320,20 +319,21 @@ function ChoiceReactionTest({
           ? 'Wrong side'
           : '…';
 
-  const promptBg =
+  const promptStyle =
     state === 'ready'
-      ? 'bg-[#34302B] text-white'
+      ? { background: 'var(--ink)', color: '#FBF3E6' }
       : state === 'tooEarly' || state === 'wrong'
-        ? 'bg-[var(--jujube)] text-white'
-        : 'bg-[var(--line)] text-[var(--ink-2)]';
+        ? { background: 'var(--jujube)', color: '#FBF3E6' }
+        : { background: 'var(--line)', color: 'var(--ink-2)' };
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-[var(--ink-2)]">
+      <p className="text-center" style={{ fontSize: 14, color: 'var(--ink-2)' }}>
         Arrow test · trial {Math.min(trial + 1, CHOICE_TRIALS)} of {CHOICE_TRIALS}
       </p>
       <div
-        className={`grid h-32 w-full place-items-center rounded-xl text-5xl font-bold transition-colors ${promptBg}`}
+        className="grid h-32 w-full place-items-center rounded-xl text-5xl font-bold transition-colors"
+        style={promptStyle}
         aria-live="polite"
       >
         {state === 'waiting' ? 'Wait for arrow…' : prompt}
@@ -341,18 +341,20 @@ function ChoiceReactionTest({
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => handleChoice('left')}
-          className="rounded-xl bg-[var(--ink)] py-4 text-lg font-bold text-white hover:bg-[#34302B]"
+          className="rounded-xl py-4 text-lg font-bold"
+          style={{ background: 'var(--ink)', color: '#FBF3E6' }}
         >
           ← Left
         </button>
         <button
           onClick={() => handleChoice('right')}
-          className="rounded-xl bg-[var(--ink)] py-4 text-lg font-bold text-white hover:bg-[#34302B]"
+          className="rounded-xl py-4 text-lg font-bold"
+          style={{ background: 'var(--ink)', color: '#FBF3E6' }}
         >
           Right →
         </button>
       </div>
-      <p className="text-center text-[11px] text-[var(--ink-3)]">
+      <p className="muted text-center" style={{ fontSize: 11 }}>
         Tap the matching side as soon as the arrow appears.
       </p>
     </div>
@@ -468,8 +470,10 @@ function MemorySequenceTest({
   if (phase === 'pick' || !config) {
     return (
       <div className="space-y-3">
-        <p className="text-center text-sm text-[var(--ink-2)]">Memory sequence</p>
-        <p className="text-center text-[11px] text-[var(--ink-3)]">
+        <p className="text-center" style={{ fontSize: 14, color: 'var(--ink-2)' }}>
+          Memory sequence
+        </p>
+        <p className="muted text-center" style={{ fontSize: 11 }}>
           Watch the pattern, then repeat it. One mistake ends the round.
         </p>
         <div className="grid gap-2">
@@ -477,12 +481,13 @@ function MemorySequenceTest({
             <button
               key={d}
               onClick={() => startGame(d)}
-              className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left shadow-sm hover:border-[var(--ginseng-soft)] hover:bg-[var(--ginseng-wash)]"
+              className="card flat flex items-center justify-between text-left hover:bg-[var(--ginseng-wash)]"
+              style={{ padding: '12px 16px' }}
             >
-              <span className="text-sm font-semibold text-[var(--ink)]">
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
                 {DIFFICULTY_CONFIG[d].label}
               </span>
-              <span className="text-xs text-[var(--ink-2)]">
+              <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>
                 {DIFFICULTY_CONFIG[d].hint}
               </span>
             </button>
@@ -508,7 +513,10 @@ function MemorySequenceTest({
       <p className="text-center text-sm text-[var(--ink-2)]">
         {config.label} · {config.hint}
       </p>
-      <p className="text-center text-xs font-medium text-[var(--ginseng-deep)]" aria-live="polite">
+      <p
+        className="text-center text-xs font-medium text-saffron-deep"
+        aria-live="polite"
+      >
         {status}
       </p>
       <div
@@ -522,16 +530,14 @@ function MemorySequenceTest({
             onClick={() => handlePadPress(i)}
             className={
               'aspect-square min-h-12 rounded-xl transition-all duration-100 ' +
-              (litPad === i ? PAD_LIT[i] : PAD_COLORS[i]) +
-              (inputEnabled
-                ? ' opacity-100 hover:brightness-110'
-                : ' opacity-80')
+              (inputEnabled ? 'opacity-100 hover:brightness-110' : 'opacity-80')
             }
+            style={{ background: litPad === i ? PAD_LIT[i] : PAD_COLORS[i] }}
             aria-label={`Pad ${i + 1}`}
           />
         ))}
       </div>
-      <p className="text-center text-[11px] text-[var(--ink-3)]">
+      <p className="muted text-center" style={{ fontSize: 11 }}>
         Each square plays a tone. The pattern grows longer every round.
       </p>
     </div>
@@ -564,8 +570,13 @@ function TypingTest({
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-[var(--ink-2)]">Type this phrase:</p>
-      <div className="rounded-xl border border-[var(--line)] bg-white p-3 text-center text-lg font-medium tracking-wide text-[var(--ink)] shadow-sm">
+      <p className="text-center" style={{ fontSize: 14, color: 'var(--ink-2)' }}>
+        Type this phrase:
+      </p>
+      <div
+        className="card flat wash serif-h text-center"
+        style={{ fontSize: 18, letterSpacing: '0.02em' }}
+      >
         {PHRASE}
       </div>
       <input
@@ -574,13 +585,9 @@ function TypingTest({
         onChange={handleChange}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         placeholder="Start typing…"
-        className="w-full rounded-lg border border-[var(--ink-4)] px-3 py-2 text-sm focus:border-[var(--ginseng)] focus:outline-none focus:ring-1 focus:ring-[var(--ginseng)]"
+        className="input"
       />
-      <button
-        onClick={submit}
-        disabled={value.length === 0}
-        className="w-full rounded-xl bg-[var(--ginseng)] py-2.5 text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)] disabled:opacity-60"
-      >
+      <button onClick={submit} disabled={value.length === 0} className="btn btn-primary">
         Done
       </button>
     </div>

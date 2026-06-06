@@ -25,9 +25,9 @@ export default function VoiceResultCard({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
+      <div className="card">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs uppercase tracking-wide text-[var(--ink-3)]">Voice results</p>
+          <p className="eyebrow">Voice results</p>
           <span
             className={
               'rounded-full px-2.5 py-0.5 text-xs font-semibold ' +
@@ -70,10 +70,8 @@ export default function VoiceResultCard({
         </dl>
       </div>
 
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-2)] p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">
-          What your results mean
-        </p>
+      <div className="card flat wash">
+        <p className="eyebrow">What your results mean</p>
         <div className="mt-2 space-y-3">
           {summary.split(/\n\n+/).map((paragraph, i) => (
             <p key={i} className="text-sm leading-relaxed text-[var(--ink)]">
@@ -94,12 +92,7 @@ export default function VoiceResultCard({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onContinue}
-        disabled={aiEnhancing}
-        className="min-h-12 w-full rounded-xl bg-[var(--ginseng)] text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)] disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <button type="button" onClick={onContinue} disabled={aiEnhancing} className="btn btn-primary">
         Continue
       </button>
 
@@ -128,7 +121,7 @@ function MetricRow({
         <dd className="text-xs text-[var(--ink-2)]">{detail}</dd>
       </div>
       <div className="text-right">
-        <div className="text-sm font-semibold tabular-nums text-[#34302B]">{value}</div>
+        <div className="text-sm font-semibold tabular-nums text-ink">{value}</div>
         <span
           className={
             'mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ' +

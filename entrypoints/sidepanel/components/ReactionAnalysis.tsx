@@ -62,8 +62,8 @@ export default function ReactionAnalysis({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-[var(--ink)]">Reaction — your results</h2>
+      <div className="card">
+        <h2 className="serif-h" style={{ fontSize: 16 }}>Reaction — your results</h2>
         <div className="mt-3 flex items-center gap-4">
           <ScoreRing score={score.score} />
           <div className="flex-1 space-y-1">
@@ -102,10 +102,8 @@ export default function ReactionAnalysis({
         />
       </div>
 
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-2)] p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">
-          Today&apos;s check-in review
-        </p>
+      <div className="card flat wash">
+        <p className="eyebrow">Today&apos;s check-in review</p>
         <div className="mt-2 space-y-3">
           {sessionSummary.split(/\n\n+/).map((paragraph, i) => (
             <p key={i} className="text-sm leading-relaxed text-[var(--ink)]">
@@ -129,11 +127,11 @@ export default function ReactionAnalysis({
       <button
         onClick={() => onContinue(sessionSummary)}
         disabled={aiEnhancing}
-        className="w-full rounded-xl bg-[var(--ginseng)] py-3 text-sm font-semibold text-white shadow-sm hover:bg-[var(--ginseng-deep)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn btn-primary"
       >
         Save check-in
       </button>
-      <p className="text-center text-[10px] text-[var(--ink-3)]">
+      <p className="muted text-center" style={{ fontSize: 10 }}>
         Provisional scores for trend tracking — not medical advice.
       </p>
     </div>
@@ -152,7 +150,7 @@ function MetricCard({
   insight: string;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-white p-3 shadow-sm">
+    <div className="card flat">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-[var(--ink)]">{label}</span>
         <span className="text-xs font-bold tabular-nums text-[var(--ink-2)]">{score}</span>
@@ -203,8 +201,8 @@ function typingInsight(wpm: number, pct: number): string {
 function ScoreRing({ score }: { score: number }) {
   return (
     <div
-      className="grid h-16 w-16 shrink-0 place-items-center rounded-full text-lg font-bold text-white"
-      style={{ backgroundColor: scoreColor(score) }}
+      className="tabnum grid h-16 w-16 shrink-0 place-items-center rounded-full text-lg font-bold"
+      style={{ backgroundColor: scoreColor(score), color: '#FBF3E6' }}
     >
       {score}
     </div>

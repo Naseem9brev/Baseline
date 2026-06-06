@@ -96,10 +96,8 @@ export default function SettingsView() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-3)]">
-          Settings
-        </p>
+      <div className="card">
+        <p className="eyebrow">Settings</p>
 
         <div className="mt-4 space-y-5">
           {FIELDS.map(({ key, label, hint, link, placeholder }) => (
@@ -119,7 +117,8 @@ export default function SettingsView() {
                 placeholder={placeholder}
                 onChange={(e) => void updateField(key, e.target.value)}
                 onBlur={() => void persist()}
-                className="mt-1.5 w-full rounded-lg border border-[var(--ink-4)] bg-[var(--paper-2)] px-3 py-2.5 text-sm text-[#34302B] outline-none ring-[var(--ginseng)]/30 placeholder:text-[var(--ink-3)] focus:border-[var(--ginseng)] focus:ring-2"
+                className="input mt-1.5"
+                style={{ fontSize: 14 }}
               />
               {link ? (
                 <a
@@ -136,11 +135,7 @@ export default function SettingsView() {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => void persist()}
-          className="mt-6 min-h-12 w-full rounded-xl bg-[var(--ginseng)] text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)]"
-        >
+        <button type="button" onClick={() => void persist()} className="btn btn-primary mt-6">
           Save settings
         </button>
 
@@ -152,7 +147,7 @@ export default function SettingsView() {
           type="button"
           disabled={ttsTest === 'testing' || !settings.elevenLabsApiKey.trim()}
           onClick={() => void testReadAloud()}
-          className="mt-4 min-h-11 w-full rounded-lg border border-[var(--ink-4)] bg-white text-sm font-medium text-[var(--ink)] hover:bg-[var(--paper-2)] disabled:opacity-50"
+          className="btn btn-ghost mt-4"
         >
           {ttsTest === 'testing' ? 'Testing ElevenLabs…' : 'Test ElevenLabs connection'}
         </button>
@@ -174,9 +169,9 @@ export default function SettingsView() {
         Add Z.AI or Gemini for AI-written summaries.
       </p>
 
-      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
-        <p className="text-sm font-semibold text-[var(--ink)]">Try voice test</p>
-        <p className="mt-1 text-xs text-[var(--ink-2)]">
+      <div className="card">
+        <p className="serif-h" style={{ fontSize: 16 }}>Try voice test</p>
+        <p className="mt-1" style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
           Run the sustained “ahhhh” check without starting a full check-in.
         </p>
         {!voiceTestOpen ? (
@@ -186,7 +181,7 @@ export default function SettingsView() {
               setVoiceTestOpen(true);
               setVoiceTestKey((k) => k + 1);
             }}
-            className="mt-3 min-h-11 w-full rounded-lg border border-[var(--ginseng-soft)] bg-[var(--ginseng-wash)] text-sm font-semibold text-[var(--ginseng-deep)] hover:bg-[var(--ginseng-wash)]"
+            className="btn btn-ghost mt-3"
           >
             Open voice test
           </button>
@@ -197,11 +192,7 @@ export default function SettingsView() {
               onComplete={() => setVoiceTestOpen(false)}
               onError={() => setVoiceTestKey((k) => k + 1)}
             />
-            <button
-              type="button"
-              onClick={() => setVoiceTestOpen(false)}
-              className="w-full rounded-lg border border-[var(--ink-4)] py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--paper-2)]"
-            >
+            <button type="button" onClick={() => setVoiceTestOpen(false)} className="btn btn-quiet">
               Close
             </button>
           </div>

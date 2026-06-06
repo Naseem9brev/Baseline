@@ -164,14 +164,27 @@ function HomeView({
 
       <button
         onClick={onBegin}
-        className="card tint btn-primary"
-        style={{ marginTop: 18, textAlign: 'center' }}
+        className="card tint flex w-full items-center gap-3 text-left"
+        style={{ marginTop: 18 }}
       >
-        {today ? 'Check in again' : "Begin today's check-in"}
+        <span
+          className="grid place-items-center rounded-xl"
+          style={{ width: 38, height: 38, background: 'var(--ginseng)', color: '#FBF3E6', flex: '0 0 auto' }}
+        >
+          <Ic.tests width={20} height={20} />
+        </span>
+        <span className="flex-1">
+          <span className="serif-h block" style={{ fontSize: 16 }}>
+            {today ? 'Check in again' : "Begin today's check-in"}
+          </span>
+          <span className="muted block" style={{ fontSize: 12 }}>
+            About 60 seconds · eyes, voice, reaction
+          </span>
+        </span>
+        <Ic.arrow width={20} height={20} style={{ color: 'var(--ginseng-deep)', flex: '0 0 auto' }} />
       </button>
-      <p className="muted" style={{ fontSize: 11.5, marginTop: 8, maxWidth: 280 }}>
-        About 60 seconds · eyes, voice, reaction. 100% on-device — provisional, not
-        medical advice.
+      <p className="muted" style={{ fontSize: 11.5, marginTop: 10, maxWidth: 280 }}>
+        100% on-device — provisional, not medical advice.
       </p>
     </div>
   );
