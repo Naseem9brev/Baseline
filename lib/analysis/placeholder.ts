@@ -14,6 +14,7 @@ import type {
   RawVoiceFeatures,
   StationScore,
 } from './types';
+import { scoreVoiceMetrics, VOICE_STATUS_LABEL } from '../voiceScoring';
 
 const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
 
@@ -37,10 +38,22 @@ export function scoreFace(f: RawFaceFeatures): StationScore {
 
 export function scoreVoice(f: RawVoiceFeatures): StationScore {
   if (f.durationSec < 0.5) return { score: 0, note: 'No voice captured.' };
-  const loudness = clamp(f.rms * 400); // RMS ~0.1–0.25
-  const duration = clamp((f.durationSec / 5) * 100);
-  const score = Math.round(0.6 * loudness + 0.4 * duration);
-  return { score: clamp(score), note: provisionalNote(score) };
+  if (f.jitter === 0 && f.shimmer === 0) {
+    return { score: 0, note: 'Could not detect a steady vowel — try again.' };
+  }
+
+  const { overall } = scoreVoiceMetrics(f);
+  const flags = [overall === 'flag', overall === 'monitor'].filter(Boolean).length;
+  const score = clamp(Math.round(100 - flags * 18 - Math.max(0, f.jitter - 0.5) * 8));
+
+  const note =
+    overall === 'stable'
+      ? 'Voice steady today — within expected range for this check.'
+      : overall === 'monitor'
+        ? 'Voice slightly variable today — one day is not a trend.'
+        : 'Voice reading worth monitoring — speak with your GP if this continues.';
+
+  return { score: clamp(score), note: `${VOICE_STATUS_LABEL[overall]}. ${note}` };
 }
 
 export function scoreReaction(f: RawReactionFeatures): StationScore {
