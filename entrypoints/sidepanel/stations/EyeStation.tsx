@@ -65,12 +65,14 @@ export default function EyeStation({
       // Side panels can't show the camera prompt — grant once via a helper tab if needed.
       const permitted = await ensureCameraPermission();
       if (cancelled) return;
+      console.log('[Eye] camera permission:', permitted);
       if (!permitted) {
         onError('denied');
         return;
       }
 
       try {
+        console.log('[Eye] requesting getUserMedia…');
         stream = await withTimeout(
           navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'user', width: 640, height: 480 },
@@ -78,7 +80,9 @@ export default function EyeStation({
           }),
           12_000,
         );
+        console.log('[Eye] camera stream acquired');
       } catch (e) {
+        console.error('[Eye] getUserMedia failed:', e);
         if (!cancelled) {
           onError((e as DOMException)?.name === 'NotAllowedError' ? 'denied' : 'error');
         }
@@ -92,8 +96,11 @@ export default function EyeStation({
 
       let landmarker;
       try {
-        landmarker = await getFaceLandmarker();
-      } catch {
+        console.log('[Eye] loading FaceLandmarker model…');
+        landmarker = await withTimeout(getFaceLandmarker(), 20_000);
+        console.log('[Eye] model ready');
+      } catch (err) {
+        console.error('[Eye] model load failed:', err);
         if (!cancelled) onError('error');
         return;
       }
