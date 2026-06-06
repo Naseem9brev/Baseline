@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getFaceLandmarker } from '@/lib/mediapipe';
+import { ensureCameraPermission } from '@/lib/cameraPermission';
 import {
   blinkRate,
   countBlinks,
@@ -30,6 +31,12 @@ interface Computed {
   result: EyeResult;
   status: 'good' | 'low' | 'retry';
   band: number; // ± bpm
+  debug: {
+    elapsedSec: number;
+    faceFrames: number;
+    greenSamples: number;
+    trackEnded: boolean;
+  };
 }
 
 export default function EyeStation({
@@ -59,14 +66,30 @@ export default function EyeStation({
     const earSeries: number[] = [];
     let runningGreen = 0;
     let faceFrames = 0;
+    let trackEnded = false;
 
     async function run() {
+      // Side panels can't show the camera prompt — grant once via a helper tab if needed.
+      const permitted = await ensureCameraPermission();
+      if (cancelled) return;
+      console.log('[Eye] camera permission:', permitted);
+      if (!permitted) {
+        onError('denied');
+        return;
+      }
+
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: 640, height: 480 },
-          audio: false,
-        });
+        console.log('[Eye] requesting getUserMedia…');
+        stream = await withTimeout(
+          navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: 640, height: 480 },
+            audio: false,
+          }),
+          12_000,
+        );
+        console.log('[Eye] camera stream acquired');
       } catch (e) {
+        console.error('[Eye] getUserMedia failed:', e);
         if (!cancelled) {
           onError((e as DOMException)?.name === 'NotAllowedError' ? 'denied' : 'error');
         }
@@ -76,12 +99,21 @@ export default function EyeStation({
 
       const video = videoRef.current!;
       video.srcObject = stream;
-      await video.play().catch(() => {});
+      await video.play().catch((e) => console.warn('[Eye] video.play() rejected', e));
+      const track = stream.getVideoTracks()[0];
+      console.log('[Eye] track:', track?.label, '| state:', track?.readyState);
+      track?.addEventListener('ended', () => {
+        trackEnded = true;
+        console.warn('[Eye] ⚠ video track ENDED early (side-panel camera dropped)');
+      });
 
       let landmarker;
       try {
-        landmarker = await getFaceLandmarker();
-      } catch {
+        console.log('[Eye] loading FaceLandmarker model…');
+        landmarker = await withTimeout(getFaceLandmarker(), 20_000);
+        console.log('[Eye] model ready');
+      } catch (err) {
+        console.error('[Eye] model load failed:', err);
         if (!cancelled) onError('error');
         return;
       }
@@ -102,6 +134,7 @@ export default function EyeStation({
         const vh = video.videoHeight;
         if (vw > 0) {
           if (sampleCanvas.width !== vw) {
+            console.log('[Eye] first frames', vw, 'x', vh, '| track', video.srcObject && (video.srcObject as MediaStream).getVideoTracks()[0]?.readyState);
             sampleCanvas.width = vw;
             sampleCanvas.height = vh;
             overlay.width = vw;
@@ -149,6 +182,13 @@ export default function EyeStation({
       const hr = estimateHeartRate(times, greens);
       const blinks = countBlinks(earSeries);
       const bpmRate = blinkRate(blinks, elapsedMs);
+      console.log('[Eye] finish:', {
+        elapsedSec: Math.round(elapsedMs / 1000),
+        faceFrames,
+        greenSamples: greens.length,
+        bpm: hr.bpm,
+        confidence: Number(hr.confidence.toFixed(2)),
+      });
 
       const enoughTime = elapsedMs >= MIN_VALID_MS;
       const enoughFace = faceFrames >= MIN_FACE_FRAMES;
@@ -168,7 +208,17 @@ export default function EyeStation({
       const band = hr.confidence >= CONF_LOW ? 3 : 5;
 
       cleanup();
-      setComputed({ result, status, band });
+      setComputed({
+        result,
+        status,
+        band,
+        debug: {
+          elapsedSec: Math.round(elapsedMs / 1000),
+          faceFrames,
+          greenSamples: greens.length,
+          trackEnded,
+        },
+      });
       setPhase('result');
     }
 
@@ -258,6 +308,7 @@ function ResultCard({
         <p className="text-xs text-amber-700">
           Sit still, face steady overhead light, and avoid moving for the count.
         </p>
+        <DebugLine d={c.debug} />
         <div className="flex gap-2">
           <button
             onClick={onRetry}
@@ -325,4 +376,24 @@ function Spinner() {
   return (
     <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
   );
+}
+
+/** On-screen diagnostics so issues are visible without DevTools. */
+function DebugLine({ d }: { d: Computed['debug'] }) {
+  return (
+    <p className="font-mono text-[10px] text-slate-400">
+      diag · {d.elapsedSec}s · frames {d.faceFrames} · samples {d.greenSamples} ·
+      track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
+    </p>
+  );
+}
+
+/** Reject if a promise doesn't settle in time — guards against a stuck camera open. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      window.setTimeout(() => reject(new Error('timeout')), ms),
+    ),
+  ]);
 }

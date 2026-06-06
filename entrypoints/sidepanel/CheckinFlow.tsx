@@ -4,6 +4,11 @@ import {
   openExtensionMicSettings,
   openMicPermissionTab,
 } from '@/lib/micPermission';
+import {
+  CAMERA_PERMISSION_COPY,
+  openCameraPermissionTab,
+  openExtensionCameraSettings,
+} from '@/lib/cameraPermission';
 import EyeStation, { type EyeResult } from './stations/EyeStation';
 import VoiceStation from './stations/VoiceStation';
 import ReactionStation from './stations/ReactionStation';
@@ -142,15 +147,18 @@ function StepErrorCard({
   onSkip: () => void;
 }) {
   const isVoiceMic = kind === 'denied' && step === 'voice';
+  const isCameraDenied = kind === 'denied' && step === 'face';
 
   return (
     <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
       <p className="text-sm text-amber-800">
         {isVoiceMic
           ? MIC_PERMISSION_COPY.sidePanelNote
-          : kind === 'denied'
-            ? 'Camera/microphone access was blocked for this step.'
-            : 'This step couldn’t start.'}
+          : isCameraDenied
+            ? CAMERA_PERMISSION_COPY.sidePanelNote
+            : kind === 'denied'
+              ? 'Camera/microphone access was blocked for this step.'
+              : 'This step couldn’t start.'}
       </p>
       {isVoiceMic ? (
         <div className="grid gap-2">
@@ -167,6 +175,23 @@ function StepErrorCard({
             className="min-h-11 rounded-lg border border-teal-300 bg-white py-2 text-sm font-medium text-teal-800 hover:bg-teal-50"
           >
             Open extension microphone settings
+          </button>
+        </div>
+      ) : isCameraDenied ? (
+        <div className="grid gap-2">
+          <button
+            type="button"
+            onClick={() => void openCameraPermissionTab().then(() => onRetry())}
+            className="min-h-11 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          >
+            Allow camera (opens tab)
+          </button>
+          <button
+            type="button"
+            onClick={openExtensionCameraSettings}
+            className="min-h-11 rounded-lg border border-teal-300 bg-white py-2 text-sm font-medium text-teal-800 hover:bg-teal-50"
+          >
+            Open extension camera settings
           </button>
         </div>
       ) : null}
