@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RawVoiceFeatures } from '@/lib/analysis/types';
 import {
   buildPlainEnglishSummary,
-  fetchGlmVoiceSummary,
+  fetchAiVoiceSummary,
 } from '@/lib/voiceInterpretation';
 import { speakInstructions, stopInstructions } from '@/lib/elevenlabs';
-import { getZaiApiKey } from '@/lib/settings';
+import { hasLlmKey, llmProviderLabel, getLlmProvider } from '@/lib/llm';
 import {
   analyzeSustainedVowel,
   mergeSampleChunks,
@@ -45,6 +45,7 @@ export default function VoiceStation({
   const [summary, setSummary] = useState('');
   const [aiEnhancing, setAiEnhancing] = useState(false);
   const [usedAi, setUsedAi] = useState(false);
+  const [aiProvider, setAiProvider] = useState<string | null>(null);
   const [needsMicAccess, setNeedsMicAccess] = useState(false);
   const [micBusy, setMicBusy] = useState(false);
   const [instructionAudio, setInstructionAudio] = useState<InstructionAudio>('loading');
@@ -213,17 +214,20 @@ export default function VoiceStation({
     setResult(analysis);
     setPhase('results');
     setUsedAi(false);
+    setAiProvider(null);
     setSummary(buildPlainEnglishSummary(analysis));
 
-    const hasZaiKey = !!(await getZaiApiKey());
-    if (!hasZaiKey) return;
+    const hasKey = await hasLlmKey();
+    if (!hasKey) return;
 
     setAiEnhancing(true);
     try {
-      const glmSummary = await fetchGlmVoiceSummary(analysis);
-      if (glmSummary) {
-        setSummary(glmSummary);
+      const aiSummary = await fetchAiVoiceSummary(analysis);
+      if (aiSummary) {
+        setSummary(aiSummary);
         setUsedAi(true);
+        const provider = await getLlmProvider();
+        if (provider) setAiProvider(llmProviderLabel(provider));
       }
     } finally {
       setAiEnhancing(false);
@@ -383,6 +387,7 @@ export default function VoiceStation({
         summary={summary}
         aiEnhancing={aiEnhancing}
         usedAi={usedAi}
+        aiProvider={aiProvider}
         onContinue={() => onComplete(result)}
       />
     );

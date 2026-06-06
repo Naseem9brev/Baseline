@@ -19,9 +19,16 @@ const FIELDS: {
   {
     key: 'zaiApiKey',
     label: 'Z.AI API key',
-    hint: 'Powers GLM 5.1 voice result summaries and GP export text. Only metrics are sent — never audio.',
+    hint: 'Powers GLM 5.1 summaries for voice results and check-in reviews. Only metrics are sent — never audio or video.',
     link: { href: 'https://z.ai/', text: 'Get Z.AI API key →' },
     placeholder: 'Paste your Z.AI key',
+  },
+  {
+    key: 'geminiApiKey',
+    label: 'Gemini API key',
+    hint: 'Alternative to Z.AI — used when no Z.AI key is saved. Same summaries and reviews; only your numbers are sent.',
+    link: { href: 'https://aistudio.google.com/apikey', text: 'Get Gemini API key →' },
+    placeholder: 'Paste your Google AI key',
   },
   {
     key: 'elevenLabsApiKey',
@@ -157,6 +164,7 @@ export default function SettingsView() {
       <p className="text-center text-[11px] leading-relaxed text-slate-400">
         API keys are stored only on this device in Chrome local storage. Voice analysis
         (jitter, shimmer, HNR) always runs locally with praatfan — no key required.
+        Add Z.AI or Gemini for AI-written summaries.
       </p>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
