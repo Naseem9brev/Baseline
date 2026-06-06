@@ -53,21 +53,29 @@ export default function CheckinFlow({
   const stations = useRef<Partial<Record<StationKey, StationScore>>>({});
   const raw = useRef<RawFeatures>({});
 
+  async function saveAndFinish() {
+    setSaving(true);
+    const { baselineScore, feedback } = combineScore(stations.current);
+    await saveRecord({
+      date: dateKey(),
+      baselineScore,
+      stations: stations.current,
+      raw: raw.current,
+      feedback,
+      createdAt: Date.now(),
+    });
+    onFinished();
+  }
+
   async function advance() {
     setStepError(null);
-    if (stepIdx + 1 >= STEPS.length) {
+    if (reactionReview) {
       setReactionReview(null);
-      setSaving(true);
-      const { baselineScore, feedback } = combineScore(stations.current);
-      await saveRecord({
-        date: dateKey(),
-        baselineScore,
-        stations: stations.current,
-        raw: raw.current,
-        feedback,
-        createdAt: Date.now(),
-      });
-      onFinished();
+      await saveAndFinish();
+      return;
+    }
+    if (stepIdx + 1 >= STEPS.length) {
+      await saveAndFinish();
     } else {
       setStepIdx((i) => i + 1);
       setAttempt((a) => a + 1);
@@ -79,7 +87,7 @@ export default function CheckinFlow({
 
   return (
     <div className="space-y-4">
-      <StepHeader idx={reactionReview ? STEPS.length : stepIdx} />
+      <StepHeader idx={reactionReview ? 2 : stepIdx} />
 
       {reactionReview ? (
         <ReactionAnalysis
@@ -121,15 +129,24 @@ export default function CheckinFlow({
           onError={setStepError}
         />
       ) : (
-        <ReactionStation
-          key={key}
-          onComplete={(r) => {
-            const scored = scoreReaction(r);
-            stations.current.reaction = scored;
-            raw.current.reaction = r;
-            setReactionReview({ raw: r, score: scored });
-          }}
-        />
+        <div className="space-y-3">
+          <ReactionStation
+            key={key}
+            onComplete={(r) => {
+              const scored = scoreReaction(r);
+              stations.current.reaction = scored;
+              raw.current.reaction = r;
+              setReactionReview({ raw: r, score: scored });
+            }}
+          />
+          <button
+            type="button"
+            onClick={advance}
+            className="w-full min-h-11 rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Skip this step
+          </button>
+        </div>
       )}
     </div>
   );

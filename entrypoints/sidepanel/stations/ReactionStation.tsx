@@ -3,7 +3,6 @@ import type { MemoryDifficulty, RawReactionFeatures } from '@/lib/analysis/types
 
 const TAP_TRIALS = 3;
 const CHOICE_TRIALS = 5;
-const PHRASE = 'stay healthy every day';
 const MAX_MEMORY_LENGTH = 15;
 const FLASH_MS = 450;
 const GAP_MS = 180;
@@ -12,7 +11,6 @@ const SUB_STEPS = [
   { key: 'reaction', label: 'Tap' },
   { key: 'choice', label: 'Arrows' },
   { key: 'memory', label: 'Memory' },
-  { key: 'typing', label: 'Type' },
 ] as const;
 
 type Sub = (typeof SUB_STEPS)[number]['key'];
@@ -80,18 +78,14 @@ export default function ReactionStation({
   function handleMemoryDone(maxLength: number, difficulty: MemoryDifficulty) {
     setMemoryMaxLength(maxLength);
     setMemoryDifficulty(difficulty);
-    setSub('typing');
-  }
-
-  function handleTypingDone(wpm: number, accuracy: number) {
     onComplete({
       reactionMs,
       choiceReactionMs,
       choiceAccuracy,
       memoryMaxLength,
       memoryDifficulty,
-      wpm,
-      accuracy,
+      wpm: 0,
+      accuracy: 0,
     });
   }
 
@@ -104,10 +98,8 @@ export default function ReactionStation({
         <ReactionTest onDone={handleReactionDone} />
       ) : sub === 'choice' ? (
         <ChoiceReactionTest onDone={handleChoiceDone} />
-      ) : sub === 'memory' ? (
-        <MemorySequenceTest onDone={handleMemoryDone} />
       ) : (
-        <TypingTest onDone={handleTypingDone} />
+        <MemorySequenceTest onDone={handleMemoryDone} />
       )}
     </div>
   );
@@ -534,55 +526,6 @@ function MemorySequenceTest({
       <p className="text-center text-[11px] text-slate-400">
         Each square plays a tone. The pattern grows longer every round.
       </p>
-    </div>
-  );
-}
-
-function TypingTest({
-  onDone,
-}: {
-  onDone: (wpm: number, accuracy: number) => void;
-}) {
-  const [value, setValue] = useState('');
-  const startedAt = useRef(0);
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!startedAt.current) startedAt.current = performance.now();
-    setValue(e.target.value);
-  }
-
-  function submit() {
-    const minutes = (performance.now() - startedAt.current) / 60000;
-    const wpm = minutes > 0 ? value.length / 5 / minutes : 0;
-    let correct = 0;
-    for (let i = 0; i < PHRASE.length; i++) {
-      if (value[i] === PHRASE[i]) correct++;
-    }
-    const accuracy = correct / PHRASE.length;
-    onDone(Math.round(wpm), accuracy);
-  }
-
-  return (
-    <div className="space-y-3">
-      <p className="text-center text-sm text-slate-600">Type this phrase:</p>
-      <div className="rounded-xl border border-slate-200 bg-white p-3 text-center text-lg font-medium tracking-wide text-slate-700 shadow-sm">
-        {PHRASE}
-      </div>
-      <input
-        autoFocus
-        value={value}
-        onChange={handleChange}
-        onKeyDown={(e) => e.key === 'Enter' && submit()}
-        placeholder="Start typing…"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-      />
-      <button
-        onClick={submit}
-        disabled={value.length === 0}
-        className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
-      >
-        Done
-      </button>
     </div>
   );
 }

@@ -67,8 +67,6 @@ export interface ReactionSubScores {
   choice: number;
   choiceAcc: number;
   memory: number;
-  wpm: number;
-  typingAcc: number;
 }
 
 export function reactionSubScores(f: RawReactionFeatures): ReactionSubScores {
@@ -80,20 +78,16 @@ export function reactionSubScores(f: RawReactionFeatures): ReactionSubScores {
     memory: clamp(
       (f.memoryMaxLength / MEMORY_TARGET[f.memoryDifficulty]) * 100,
     ),
-    wpm: clamp(f.wpm * 2.5),
-    typingAcc: clamp(f.accuracy * 100),
   };
 }
 
 export function scoreReaction(f: RawReactionFeatures): StationScore {
   const s = reactionSubScores(f);
   const score = Math.round(
-    0.2 * s.tap +
-      0.2 * s.choice +
-      0.1 * s.choiceAcc +
-      0.15 * s.memory +
-      0.2 * s.wpm +
-      0.15 * s.typingAcc,
+    0.3 * s.tap +
+      0.3 * s.choice +
+      0.2 * s.choiceAcc +
+      0.2 * s.memory,
   );
   return { score: clamp(score), note: provisionalNote(score) };
 }

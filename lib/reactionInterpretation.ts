@@ -8,7 +8,6 @@ const METRIC_MEANING = {
   tap: 'how quickly you tapped when the box turned green',
   choice: 'how fast and accurately you picked the correct arrow direction',
   memory: 'how many symbols you recalled in order on the grid',
-  typing: 'how fast and accurately you typed the phrase',
 } as const;
 
 function explainTap(raw: RawReactionFeatures, subScore: number): string {
@@ -48,20 +47,6 @@ function explainMemory(raw: RawReactionFeatures, subScore: number): string {
   return `Memory sequence (${raw.memoryMaxLength} in a row, ${diff} grid): Shorter sequence today — stress, rushing, or an off day can shorten recall; watch your trend, not one score.`;
 }
 
-function explainTyping(raw: RawReactionFeatures, subScore: number): string {
-  const pct = Math.round(raw.accuracy * 100);
-  if (pct < 90) {
-    return `Typing (${raw.wpm} wpm, ${pct}% accurate): Some character mismatches — double-check each letter when accuracy matters more than speed.`;
-  }
-  if (subScore >= 75) {
-    return `Typing (${raw.wpm} wpm, ${pct}% accurate): Fast, accurate typing — finger dexterity and focus looked good.`;
-  }
-  if (subScore >= 55) {
-    return `Typing (${raw.wpm} wpm, ${pct}% accurate): Comfortable typing pace — fine for a daily baseline snapshot.`;
-  }
-  return `Typing (${raw.wpm} wpm, ${pct}% accurate): Slower typing today — that is normal variation unless it keeps dropping over many check-ins.`;
-}
-
 function overallTakeaway(score: StationScore): string {
   if (score.score >= 75) {
     return `Overall (${score.score}/100): Reaction and cognition looked steady today. These mini-tests track your personal pattern — not a diagnosis.`;
@@ -69,7 +54,7 @@ function overallTakeaway(score: StationScore): string {
   if (score.score >= 55) {
     return `Overall (${score.score}/100): Mixed but reasonable results — compare the next few days before reading much into one check-in.`;
   }
-  return `Overall (${score.score}/100): Several scores were lower today — sleep, stress, or rushing can affect all four tests. Mention a persistent downward trend at a routine GP visit if you are concerned.`;
+  return `Overall (${score.score}/100): Several scores were lower today — sleep, stress, or rushing can affect all three tests. Mention a persistent downward trend at a routine GP visit if you are concerned.`;
 }
 
 /** Plain-English fallback when GLM is unavailable. */
@@ -82,7 +67,6 @@ export function buildPlainEnglishSummary(
     explainTap(raw, sub.tap),
     explainChoice(raw, Math.round((sub.choice + sub.choiceAcc) / 2)),
     explainMemory(raw, sub.memory),
-    explainTyping(raw, Math.round((sub.wpm + sub.typingAcc) / 2)),
     overallTakeaway(score),
   ];
   return lines.join('\n\n');
@@ -90,10 +74,10 @@ export function buildPlainEnglishSummary(
 
 const GLM_SYSTEM_PROMPT =
   'You explain daily reaction-and-cognition check results to an older UK adult in very simple language. ' +
-  'Write at most 5 short lines: one for tap reaction time (ms), one for arrow choice (ms and accuracy %), ' +
-  'one for memory sequence (length and difficulty), one for typing (wpm and accuracy %), then one overall line. ' +
+  'Write at most 4 short lines: one for tap reaction time (ms), one for arrow choice (ms and accuracy %), ' +
+  'one for memory sequence (length and difficulty), then one overall line. ' +
   'Each line must give a different everyday reason — never repeat the same cause on every line. ' +
-  'Tap = simple reaction speed; arrows = decision speed + accuracy; memory = working memory; typing = dexterity + focus. ' +
+  'Tap = simple reaction speed; arrows = decision speed + accuracy; memory = working memory. ' +
   'Use their exact numbers. Never diagnose. Under 100 words. Blank line between lines.';
 
 /** GLM 5.1 summary when a Z.AI key is saved; null if unavailable or request fails. */
@@ -110,13 +94,12 @@ export async function fetchGlmReactionSummary(
       {
         role: 'user',
         content: JSON.stringify({
-          task: 'reaction station (tap, arrows, memory, typing)',
+          task: 'reaction station (tap, arrows, memory)',
           metrics: raw,
           subScores: {
             tap: sub.tap,
             arrowChoice: Math.round((sub.choice + sub.choiceAcc) / 2),
             memory: sub.memory,
-            typing: Math.round((sub.wpm + sub.typingAcc) / 2),
             combined: score.score,
           },
           meaningGuide: METRIC_MEANING,

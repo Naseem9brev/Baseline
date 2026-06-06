@@ -20,7 +20,6 @@ export default function ReactionAnalysis({
 }) {
   const sub = reactionSubScores(raw);
   const choicePct = Math.round(raw.choiceAccuracy * 100);
-  const typingPct = Math.round(raw.accuracy * 100);
 
   const [summary, setSummary] = useState(() => buildPlainEnglishSummary(raw, score));
   const [aiEnhancing, setAiEnhancing] = useState(false);
@@ -90,7 +89,7 @@ export default function ReactionAnalysis({
           <div className="flex-1 space-y-1">
             <p className="text-sm text-slate-600">{score.note}</p>
             <p className="text-[11px] text-slate-400">
-              Combined score from all four mini-tests below.
+              Combined score from all three mini-tests below.
             </p>
           </div>
         </div>
@@ -111,11 +110,6 @@ export default function ReactionAnalysis({
           label="Memory sequence"
           score={sub.memory}
           detail={`${raw.memoryMaxLength} in a row · ${DIFFICULTY_LABEL[raw.memoryDifficulty]}`}
-        />
-        <MetricCard
-          label="Typing"
-          score={Math.round((sub.wpm + sub.typingAcc) / 2)}
-          detail={`${raw.wpm} wpm · ${typingPct}% accurate`}
         />
       </div>
 
