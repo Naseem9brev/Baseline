@@ -1,20 +1,64 @@
+import { useEffect, useState } from 'react';
 import { reactionSubScores } from '@/lib/analysis/placeholder';
-import type { RawReactionFeatures, StationScore } from '@/lib/analysis/types';
+import {
+  buildPlainEnglishSessionSummary,
+  fetchAiSessionSummary,
+} from '@/lib/sessionInterpretation';
+import { llmProviderLabel } from '@/lib/llm';
+import type {
+  RawFeatures,
+  RawReactionFeatures,
+  StationKey,
+  StationScore,
+} from '@/lib/analysis/types';
 
 const DIFFICULTY_LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
 
 export default function ReactionAnalysis({
   raw,
   score,
+  stations,
+  rawFeatures,
   onContinue,
 }: {
   raw: RawReactionFeatures;
   score: StationScore;
-  onContinue: () => void;
+  stations: Partial<Record<StationKey, StationScore>>;
+  rawFeatures: RawFeatures;
+  onContinue: (feedback: string) => void;
 }) {
   const sub = reactionSubScores(raw);
   const choicePct = Math.round(raw.choiceAccuracy * 100);
   const typingPct = Math.round(raw.accuracy * 100);
+
+  const [sessionSummary, setSessionSummary] = useState(() =>
+    buildPlainEnglishSessionSummary(stations, rawFeatures),
+  );
+  const [aiEnhancing, setAiEnhancing] = useState(false);
+  const [usedAi, setUsedAi] = useState(false);
+  const [aiProvider, setAiProvider] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadReview() {
+      setAiEnhancing(true);
+      try {
+        const result = await fetchAiSessionSummary(stations, rawFeatures);
+        if (cancelled) return;
+        setSessionSummary(result.summary);
+        setUsedAi(result.usedAi);
+        if (result.provider) setAiProvider(llmProviderLabel(result.provider));
+      } finally {
+        if (!cancelled) setAiEnhancing(false);
+      }
+    }
+
+    void loadReview();
+    return () => {
+      cancelled = true;
+    };
+  }, [stations, rawFeatures]);
 
   return (
     <div className="space-y-4">
@@ -58,9 +102,34 @@ export default function ReactionAnalysis({
         />
       </div>
 
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Today&apos;s check-in review
+        </p>
+        <div className="mt-2 space-y-3">
+          {sessionSummary.split(/\n\n+/).map((paragraph, i) => (
+            <p key={i} className="text-sm leading-relaxed text-slate-700">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+        {aiEnhancing ? (
+          <p className="mt-3 text-xs text-slate-500">Writing your review…</p>
+        ) : usedAi ? (
+          <p className="mt-3 text-[10px] text-slate-400">
+            Review by {aiProvider ?? 'AI'} · only your scores were sent
+          </p>
+        ) : (
+          <p className="mt-3 text-[10px] text-slate-400">
+            Add a Z.AI or Gemini API key in Settings for an AI-written review (optional)
+          </p>
+        )}
+      </div>
+
       <button
-        onClick={onContinue}
-        className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"
+        onClick={() => onContinue(sessionSummary)}
+        disabled={aiEnhancing}
+        className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         Save check-in
       </button>

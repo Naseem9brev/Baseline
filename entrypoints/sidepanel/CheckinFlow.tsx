@@ -53,18 +53,18 @@ export default function CheckinFlow({
   const stations = useRef<Partial<Record<StationKey, StationScore>>>({});
   const raw = useRef<RawFeatures>({});
 
-  async function advance() {
+  async function advance(feedback?: string) {
     setStepError(null);
     if (stepIdx + 1 >= STEPS.length) {
       setReactionReview(null);
       setSaving(true);
-      const { baselineScore, feedback } = combineScore(stations.current);
+      const { baselineScore, feedback: defaultFeedback } = combineScore(stations.current);
       await saveRecord({
         date: dateKey(),
         baselineScore,
         stations: stations.current,
         raw: raw.current,
-        feedback,
+        feedback: feedback ?? defaultFeedback,
         createdAt: Date.now(),
       });
       onFinished();
@@ -85,6 +85,8 @@ export default function CheckinFlow({
         <ReactionAnalysis
           raw={reactionReview.raw}
           score={reactionReview.score}
+          stations={stations.current}
+          rawFeatures={raw.current}
           onContinue={advance}
         />
       ) : saving ? (

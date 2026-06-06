@@ -1,5 +1,5 @@
 import type { RawVoiceFeatures } from './analysis/types';
-import { chatCompletion } from './zai';
+import { llmChatCompletion } from './llm';
 import {
   scoreVoiceMetrics,
   VOICE_STATUS_LABEL,
@@ -101,21 +101,21 @@ export function buildPlainEnglishSummary(
   return lines.join('\n\n');
 }
 
-const GLM_SYSTEM_PROMPT =
+const AI_SYSTEM_PROMPT =
   'You explain sustained “ahhhh” voice check results to an older UK adult in very simple language. ' +
   'Write at most 5 short lines: one for pitch/jitter (%), volume/shimmer (%), clarity/HNR (dB), breath support/phonation time (seconds), then one overall line. ' +
   'Each line must give a different health-related reason — never repeat the same cause (e.g. do not blame tiredness on every line). ' +
   'Pitch = note steadiness; volume = loudness evenness; clarity = breathiness/noise; breath support = how long they held the sound. ' +
   'Use their exact numbers. Never diagnose. Under 100 words. Blank line between lines.';
 
-/** GLM 5.1 summary when a Z.AI key is saved; null if unavailable or request fails. */
-export async function fetchGlmVoiceSummary(
+/** AI summary when a GLM or Gemini key is saved; null if unavailable or request fails. */
+export async function fetchAiVoiceSummary(
   metrics: RawVoiceFeatures,
 ): Promise<string | null> {
   const scores = scoreVoiceMetrics(metrics);
 
-  return chatCompletion([
-    { role: 'system', content: GLM_SYSTEM_PROMPT },
+  const { text } = await llmChatCompletion([
+    { role: 'system', content: AI_SYSTEM_PROMPT },
     {
       role: 'user',
       content: JSON.stringify({
@@ -132,14 +132,19 @@ export async function fetchGlmVoiceSummary(
       }),
     },
   ]);
+
+  return text;
 }
 
-/** Instant fallback plus optional GLM upgrade. */
+/** @deprecated Use fetchAiVoiceSummary */
+export const fetchGlmVoiceSummary = fetchAiVoiceSummary;
+
+/** Instant fallback plus optional AI upgrade. */
 export async function interpretVoiceResult(
   metrics: RawVoiceFeatures,
 ): Promise<{ summary: string; usedAi: boolean }> {
   const fallback = buildPlainEnglishSummary(metrics);
-  const ai = await fetchGlmVoiceSummary(metrics);
+  const ai = await fetchAiVoiceSummary(metrics);
   if (ai) return { summary: ai, usedAi: true };
   return { summary: fallback, usedAi: false };
 }

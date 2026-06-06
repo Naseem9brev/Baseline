@@ -11,12 +11,14 @@ export default function VoiceResultCard({
   summary,
   aiEnhancing,
   usedAi,
+  aiProvider,
   onContinue,
 }: {
   metrics: RawVoiceFeatures;
   summary: string;
   aiEnhancing: boolean;
   usedAi: boolean;
+  aiProvider?: string | null;
   onContinue: () => void;
 }) {
   const scores = scoreVoiceMetrics(metrics);
@@ -80,14 +82,14 @@ export default function VoiceResultCard({
           ))}
         </div>
         {aiEnhancing ? (
-          <p className="mt-3 text-xs text-slate-500">Personalising summary with GLM…</p>
+          <p className="mt-3 text-xs text-slate-500">Personalising summary…</p>
         ) : usedAi ? (
           <p className="mt-3 text-[10px] text-slate-400">
-            Summary by GLM 5.1 · only your numbers were sent, never audio
+            Summary by {aiProvider ?? 'AI'} · only your numbers were sent, never audio
           </p>
         ) : (
           <p className="mt-3 text-[10px] text-slate-400">
-            Add a Z.AI API key in Settings for an AI-written summary (optional)
+            Add a Z.AI or Gemini API key in Settings for an AI-written summary (optional)
           </p>
         )}
       </div>
