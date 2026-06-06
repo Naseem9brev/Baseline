@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react';
-import FaceStation from './stations/FaceStation';
+import {
+  MIC_PERMISSION_COPY,
+  openExtensionMicSettings,
+  openMicPermissionTab,
+} from '@/lib/micPermission';
+import EyeStation, { type EyeResult } from './stations/EyeStation';
 import VoiceStation from './stations/VoiceStation';
 import ReactionStation from './stations/ReactionStation';
 import ReactionAnalysis from './components/ReactionAnalysis';
-import {
-  scoreFace,
-  scoreReaction,
-  scoreVoice,
-} from '@/lib/analysis/placeholder';
+import { scoreReaction, scoreVoice } from '@/lib/analysis/placeholder';
 import { combineScore } from '@/lib/analysis/score';
 import { dateKey, saveRecord } from '@/lib/storage';
 import type {
@@ -16,6 +17,14 @@ import type {
   StationKey,
   StationScore,
 } from '@/lib/analysis/types';
+
+// TEMP (issue #2): provisional eye score from heart rate until Person 4's scoring.ts
+// lands. The "face" slot now runs the camera EyeStation (HR + blink).
+function scoreEye(r: EyeResult): StationScore {
+  if (!r.heartRateBpm) return { score: 0, note: 'No clean reading' };
+  const inRange = r.heartRateBpm >= 60 && r.heartRateBpm <= 100;
+  return { score: inRange ? 80 : 55, note: `HR ≈${r.heartRateBpm} bpm` };
+}
 
 const STEPS = [
   { key: 'face', label: 'Eye check' },
@@ -80,6 +89,7 @@ export default function CheckinFlow({
       ) : stepError ? (
         <StepErrorCard
           kind={stepError}
+          step={step}
           onRetry={() => {
             setStepError(null);
             setAttempt((a) => a + 1);
@@ -87,11 +97,10 @@ export default function CheckinFlow({
           onSkip={advance}
         />
       ) : step === 'face' ? (
-        <FaceStation
+        <EyeStation
           key={key}
           onComplete={(r) => {
-            stations.current.face = scoreFace(r);
-            raw.current.face = r;
+            stations.current.face = scoreEye(r);
             advance();
           }}
           onError={setStepError}
@@ -123,20 +132,44 @@ export default function CheckinFlow({
 
 function StepErrorCard({
   kind,
+  step,
   onRetry,
   onSkip,
 }: {
   kind: 'denied' | 'error';
+  step: StationKey;
   onRetry: () => void;
   onSkip: () => void;
 }) {
+  const isVoiceMic = kind === 'denied' && step === 'voice';
+
   return (
     <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
       <p className="text-sm text-amber-800">
-        {kind === 'denied'
-          ? 'Camera/microphone access was blocked for this step.'
-          : 'This step couldn’t start.'}
+        {isVoiceMic
+          ? MIC_PERMISSION_COPY.sidePanelNote
+          : kind === 'denied'
+            ? 'Camera/microphone access was blocked for this step.'
+            : 'This step couldn’t start.'}
       </p>
+      {isVoiceMic ? (
+        <div className="grid gap-2">
+          <button
+            type="button"
+            onClick={() => void openMicPermissionTab().then(() => onRetry())}
+            className="min-h-11 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          >
+            Allow microphone (opens tab)
+          </button>
+          <button
+            type="button"
+            onClick={openExtensionMicSettings}
+            className="min-h-11 rounded-lg border border-teal-300 bg-white py-2 text-sm font-medium text-teal-800 hover:bg-teal-50"
+          >
+            Open extension microphone settings
+          </button>
+        </div>
+      ) : null}
       <div className="flex gap-2">
         <button
           onClick={onRetry}

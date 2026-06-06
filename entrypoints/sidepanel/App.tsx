@@ -12,8 +12,9 @@ import { exportJson } from '@/lib/export';
 import { seedDemoData } from '@/lib/seed';
 import CheckinFlow from './CheckinFlow';
 import Heatmap from './components/Heatmap';
+import SettingsView from './views/Settings';
 
-type Tab = 'checkin' | 'history';
+type Tab = 'checkin' | 'history' | 'settings';
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('checkin');
@@ -29,21 +30,16 @@ export default function App() {
   return (
     <div className="flex h-full flex-col bg-slate-50 text-slate-800">
       <Header />
-      <nav className="flex border-b border-slate-200 bg-white px-3">
-        <TabButton active={tab === 'checkin'} onClick={() => setTab('checkin')}>
-          Check-in
-        </TabButton>
-        <TabButton active={tab === 'history'} onClick={() => setTab('history')}>
-          History
-        </TabButton>
-      </nav>
       <main className="flex-1 overflow-y-auto p-4">
         {tab === 'checkin' ? (
           <CheckinTab today={today} />
-        ) : (
+        ) : tab === 'history' ? (
           <HistoryTab records={records} />
+        ) : (
+          <SettingsView />
         )}
       </main>
+      <BottomNav tab={tab} onTab={setTab} />
     </div>
   );
 }
@@ -62,27 +58,37 @@ function Header() {
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  children,
+function BottomNav({
+  tab,
+  onTab,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  tab: Tab;
+  onTab: (t: Tab) => void;
 }) {
+  const items: { id: Tab; label: string }[] = [
+    { id: 'checkin', label: 'Check-in' },
+    { id: 'history', label: 'History' },
+    { id: 'settings', label: 'Settings' },
+  ];
+
   return (
-    <button
-      onClick={onClick}
-      className={
-        'border-b-2 px-3 py-2.5 text-sm font-medium transition-colors ' +
-        (active
-          ? 'border-teal-600 text-teal-700'
-          : 'border-transparent text-slate-500 hover:text-slate-700')
-      }
-    >
-      {children}
-    </button>
+    <nav className="flex border-t border-slate-200 bg-white px-2 pb-1 pt-1">
+      {items.map(({ id, label }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onTab(id)}
+          className={
+            'min-h-11 flex-1 rounded-lg py-2 text-xs font-semibold transition-colors ' +
+            (tab === id
+              ? 'bg-teal-50 text-teal-700'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700')
+          }
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
   );
 }
 
