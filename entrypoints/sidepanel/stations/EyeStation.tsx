@@ -31,6 +31,12 @@ interface Computed {
   result: EyeResult;
   status: 'good' | 'low' | 'retry';
   band: number; // ± bpm
+  debug: {
+    elapsedSec: number;
+    faceFrames: number;
+    greenSamples: number;
+    trackEnded: boolean;
+  };
 }
 
 export default function EyeStation({
@@ -60,6 +66,7 @@ export default function EyeStation({
     const earSeries: number[] = [];
     let runningGreen = 0;
     let faceFrames = 0;
+    let trackEnded = false;
 
     async function run() {
       // Side panels can't show the camera prompt — grant once via a helper tab if needed.
@@ -95,9 +102,10 @@ export default function EyeStation({
       await video.play().catch((e) => console.warn('[Eye] video.play() rejected', e));
       const track = stream.getVideoTracks()[0];
       console.log('[Eye] track:', track?.label, '| state:', track?.readyState);
-      track?.addEventListener('ended', () =>
-        console.warn('[Eye] ⚠ video track ENDED early (side-panel camera dropped)'),
-      );
+      track?.addEventListener('ended', () => {
+        trackEnded = true;
+        console.warn('[Eye] ⚠ video track ENDED early (side-panel camera dropped)');
+      });
 
       let landmarker;
       try {
@@ -200,7 +208,17 @@ export default function EyeStation({
       const band = hr.confidence >= CONF_LOW ? 3 : 5;
 
       cleanup();
-      setComputed({ result, status, band });
+      setComputed({
+        result,
+        status,
+        band,
+        debug: {
+          elapsedSec: Math.round(elapsedMs / 1000),
+          faceFrames,
+          greenSamples: greens.length,
+          trackEnded,
+        },
+      });
       setPhase('result');
     }
 
@@ -290,6 +308,7 @@ function ResultCard({
         <p className="text-xs text-amber-700">
           Sit still, face steady overhead light, and avoid moving for the count.
         </p>
+        <DebugLine d={c.debug} />
         <div className="flex gap-2">
           <button
             onClick={onRetry}
@@ -356,6 +375,16 @@ function ResultCard({
 function Spinner() {
   return (
     <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+  );
+}
+
+/** On-screen diagnostics so issues are visible without DevTools. */
+function DebugLine({ d }: { d: Computed['debug'] }) {
+  return (
+    <p className="font-mono text-[10px] text-slate-400">
+      diag · {d.elapsedSec}s · frames {d.faceFrames} · samples {d.greenSamples} ·
+      track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
+    </p>
   );
 }
 
