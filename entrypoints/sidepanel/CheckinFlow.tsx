@@ -1,4 +1,9 @@
 import { useRef, useState } from 'react';
+import {
+  MIC_PERMISSION_COPY,
+  openExtensionMicSettings,
+  openMicPermissionTab,
+} from '@/lib/micPermission';
 import FaceStation from './stations/FaceStation';
 import VoiceStation from './stations/VoiceStation';
 import ReactionStation from './stations/ReactionStation';
@@ -67,6 +72,7 @@ export default function CheckinFlow({
       ) : stepError ? (
         <StepErrorCard
           kind={stepError}
+          step={step}
           onRetry={() => {
             setStepError(null);
             setAttempt((a) => a + 1);
@@ -109,20 +115,44 @@ export default function CheckinFlow({
 
 function StepErrorCard({
   kind,
+  step,
   onRetry,
   onSkip,
 }: {
   kind: 'denied' | 'error';
+  step: StationKey;
   onRetry: () => void;
   onSkip: () => void;
 }) {
+  const isVoiceMic = kind === 'denied' && step === 'voice';
+
   return (
     <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
       <p className="text-sm text-amber-800">
-        {kind === 'denied'
-          ? 'Camera/microphone access was blocked for this step.'
-          : 'This step couldn’t start.'}
+        {isVoiceMic
+          ? MIC_PERMISSION_COPY.sidePanelNote
+          : kind === 'denied'
+            ? 'Camera/microphone access was blocked for this step.'
+            : 'This step couldn’t start.'}
       </p>
+      {isVoiceMic ? (
+        <div className="grid gap-2">
+          <button
+            type="button"
+            onClick={() => void openMicPermissionTab().then(() => onRetry())}
+            className="min-h-11 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          >
+            Allow microphone (opens tab)
+          </button>
+          <button
+            type="button"
+            onClick={openExtensionMicSettings}
+            className="min-h-11 rounded-lg border border-teal-300 bg-white py-2 text-sm font-medium text-teal-800 hover:bg-teal-50"
+          >
+            Open extension microphone settings
+          </button>
+        </div>
+      ) : null}
       <div className="flex gap-2">
         <button
           onClick={onRetry}
