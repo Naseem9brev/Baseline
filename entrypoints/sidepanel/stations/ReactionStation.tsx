@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import type { RawReactionFeatures } from '@/lib/analysis/types';
 
-const TRIALS = 3;
+const TAP_TRIALS = 3;
+const CHOICE_TRIALS = 5;
 const PHRASE = 'stay healthy every day';
 
-type Sub = 'reaction' | 'typing';
+const SUB_STEPS = [
+  { key: 'reaction', label: 'Tap' },
+  { key: 'choice', label: 'Arrows' },
+  { key: 'typing', label: 'Type' },
+] as const;
+
+type Sub = (typeof SUB_STEPS)[number]['key'];
 type BoxState = 'waiting' | 'ready' | 'tooEarly';
+type Direction = 'left' | 'right';
+type ChoiceState = 'waiting' | 'ready' | 'tooEarly' | 'wrong';
 
 export default function ReactionStation({
   onComplete,
@@ -14,20 +23,62 @@ export default function ReactionStation({
 }) {
   const [sub, setSub] = useState<Sub>('reaction');
   const [reactionMs, setReactionMs] = useState(0);
+  const [choiceReactionMs, setChoiceReactionMs] = useState(0);
+  const [choiceAccuracy, setChoiceAccuracy] = useState(0);
 
   function handleReactionDone(avgMs: number) {
     setReactionMs(avgMs);
+    setSub('choice');
+  }
+
+  function handleChoiceDone(avgMs: number, accuracy: number) {
+    setChoiceReactionMs(avgMs);
+    setChoiceAccuracy(accuracy);
     setSub('typing');
   }
 
   function handleTypingDone(wpm: number, accuracy: number) {
-    onComplete({ reactionMs, wpm, accuracy });
+    onComplete({ reactionMs, choiceReactionMs, choiceAccuracy, wpm, accuracy });
   }
 
-  return sub === 'reaction' ? (
-    <ReactionTest onDone={handleReactionDone} />
-  ) : (
-    <TypingTest onDone={handleTypingDone} />
+  const subIdx = SUB_STEPS.findIndex((s) => s.key === sub);
+
+  return (
+    <div className="space-y-3">
+      <SubProgress idx={subIdx} />
+      {sub === 'reaction' ? (
+        <ReactionTest onDone={handleReactionDone} />
+      ) : sub === 'choice' ? (
+        <ChoiceReactionTest onDone={handleChoiceDone} />
+      ) : (
+        <TypingTest onDone={handleTypingDone} />
+      )}
+    </div>
+  );
+}
+
+function SubProgress({ idx }: { idx: number }) {
+  return (
+    <div className="flex items-center justify-center gap-2">
+      {SUB_STEPS.map((s, i) => (
+        <div key={s.key} className="flex items-center gap-2">
+          <div
+            className={
+              'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ' +
+              (i === idx
+                ? 'bg-teal-600 text-white'
+                : i < idx
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-slate-100 text-slate-400')
+            }
+          >
+            <span>{i < idx ? '✓' : i + 1}</span>
+            <span>{s.label}</span>
+          </div>
+          {i < SUB_STEPS.length - 1 && <span className="text-slate-300">›</span>}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -39,7 +90,6 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
   const timer = useRef<number>(0);
 
   useEffect(() => {
-    // schedule the green flash for the current trial
     setState('waiting');
     const delay = 1000 + Math.random() * 2500;
     timer.current = window.setTimeout(() => {
@@ -52,13 +102,12 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
   function handleClick() {
     if (state === 'ready') {
       times.current.push(performance.now() - readyAt.current);
-      if (trial + 1 >= TRIALS) {
+      if (trial + 1 >= TAP_TRIALS) {
         onDone(times.current.reduce((a, b) => a + b, 0) / times.current.length);
       } else {
         setTrial((t) => t + 1);
       }
     } else if (state === 'waiting') {
-      // clicked too early — flash red, then restart this trial
       clearTimeout(timer.current);
       setState('tooEarly');
       window.setTimeout(restart, 800);
@@ -91,7 +140,7 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
   return (
     <div className="space-y-3">
       <p className="text-center text-sm text-slate-600">
-        Reaction test · trial {Math.min(trial + 1, TRIALS)} of {TRIALS}
+        Reaction test · trial {Math.min(trial + 1, TAP_TRIALS)} of {TAP_TRIALS}
       </p>
       <button
         onClick={handleClick}
@@ -101,6 +150,118 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
       </button>
       <p className="text-center text-[11px] text-slate-400">
         Tap the box the instant it turns green.
+      </p>
+    </div>
+  );
+}
+
+function ChoiceReactionTest({
+  onDone,
+}: {
+  onDone: (avgMs: number, accuracy: number) => void;
+}) {
+  const [state, setState] = useState<ChoiceState>('waiting');
+  const [trial, setTrial] = useState(0);
+  const [direction, setDirection] = useState<Direction>('left');
+  const times = useRef<number[]>([]);
+  const correct = useRef(0);
+  const shownAt = useRef(0);
+  const timer = useRef<number>(0);
+
+  useEffect(() => {
+    scheduleTrial();
+    return () => clearTimeout(timer.current);
+  }, [trial]);
+
+  function scheduleTrial() {
+    setState('waiting');
+    setDirection(Math.random() < 0.5 ? 'left' : 'right');
+    const delay = 800 + Math.random() * 2000;
+    clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      shownAt.current = performance.now();
+      setState('ready');
+    }, delay);
+  }
+
+  function finish() {
+    const avgMs =
+      times.current.length > 0
+        ? times.current.reduce((a, b) => a + b, 0) / times.current.length
+        : 700;
+    onDone(Math.round(avgMs), correct.current / CHOICE_TRIALS);
+  }
+
+  function advanceTrial() {
+    if (trial + 1 >= CHOICE_TRIALS) {
+      finish();
+    } else {
+      setTrial((t) => t + 1);
+    }
+  }
+
+  function handleChoice(side: Direction) {
+    if (state === 'ready') {
+      if (side === direction) {
+        times.current.push(performance.now() - shownAt.current);
+        correct.current += 1;
+        advanceTrial();
+      } else {
+        setState('wrong');
+        window.setTimeout(advanceTrial, 600);
+      }
+    } else if (state === 'waiting') {
+      clearTimeout(timer.current);
+      setState('tooEarly');
+      window.setTimeout(scheduleTrial, 800);
+    }
+  }
+
+  const prompt =
+    state === 'ready'
+      ? direction === 'left'
+        ? '←'
+        : '→'
+      : state === 'tooEarly'
+        ? 'Too early'
+        : state === 'wrong'
+          ? 'Wrong side'
+          : '…';
+
+  const promptBg =
+    state === 'ready'
+      ? 'bg-slate-800 text-white'
+      : state === 'tooEarly' || state === 'wrong'
+        ? 'bg-rose-500 text-white'
+        : 'bg-slate-200 text-slate-500';
+
+  return (
+    <div className="space-y-3">
+      <p className="text-center text-sm text-slate-600">
+        Arrow test · trial {Math.min(trial + 1, CHOICE_TRIALS)} of {CHOICE_TRIALS}
+      </p>
+      <div
+        className={`grid h-32 w-full place-items-center rounded-xl text-5xl font-bold transition-colors ${promptBg}`}
+        aria-live="polite"
+      >
+        {state === 'waiting' ? 'Wait for arrow…' : prompt}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => handleChoice('left')}
+          className="rounded-xl bg-slate-700 py-4 text-lg font-bold text-white hover:bg-slate-800"
+        >
+          ← Left
+        </button>
+        <button
+          onClick={() => handleChoice('right')}
+          className="rounded-xl bg-slate-700 py-4 text-lg font-bold text-white hover:bg-slate-800"
+        >
+          Right →
+        </button>
+      </div>
+      <p className="text-center text-[11px] text-slate-400">
+        Tap the matching side as soon as the arrow appears.
       </p>
     </div>
   );

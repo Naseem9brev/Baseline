@@ -45,8 +45,16 @@ export function scoreVoice(f: RawVoiceFeatures): StationScore {
 
 export function scoreReaction(f: RawReactionFeatures): StationScore {
   const reaction = clamp(100 - (f.reactionMs - 150) / 4); // 150ms -> 100, 550ms -> 0
+  const choice = clamp(100 - (f.choiceReactionMs - 200) / 5); // 200ms -> 100, 700ms -> 0
+  const choiceAcc = clamp(f.choiceAccuracy * 100);
   const speed = clamp(f.wpm * 2.5); // 40 wpm -> 100
   const accuracy = clamp(f.accuracy * 100);
-  const score = Math.round(0.4 * reaction + 0.3 * speed + 0.3 * accuracy);
+  const score = Math.round(
+    0.25 * reaction +
+      0.25 * choice +
+      0.15 * choiceAcc +
+      0.2 * speed +
+      0.15 * accuracy,
+  );
   return { score: clamp(score), note: provisionalNote(score) };
 }
