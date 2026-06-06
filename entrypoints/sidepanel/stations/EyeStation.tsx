@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getFaceLandmarker } from '@/lib/mediapipe';
-import { ensureCameraPermission } from '@/lib/cameraPermission';
+import { openCameraPermissionTab } from '@/lib/cameraPermission';
 import {
   blinkRate,
   countBlinks,
@@ -89,38 +89,58 @@ export default function EyeStation({
     let faceFrames = 0;
     let trackEnded = false;
 
-    async function run() {
-      // Side panels can't show the camera prompt — grant once via a helper tab if needed.
-      const permitted = await ensureCameraPermission();
-      if (cancelled) return;
-      console.log('[Eye] camera permission:', permitted);
-      if (!permitted) {
-        onError('denied');
-        return;
-      }
+    const constraints: MediaStreamConstraints = {
+      video: { width: 640, height: 480 },
+      audio: false,
+    };
 
+    async function run() {
       useVitalLens = !!(await getVitalLensApiKey());
       if (cancelled) return;
       console.log('[Eye] VitalLens key present:', useVitalLens);
 
+      // Try the camera DIRECTLY first. If it's already granted this returns a live
+      // track without opening the permission helper tab — whose camera use was
+      // ending the side-panel track (state "ended", 2x2).
       try {
         console.log('[Eye] requesting getUserMedia…');
         stream = await withTimeout(
-          navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: 640, height: 480 },
-            audio: false,
-          }),
-          12_000,
+          navigator.mediaDevices.getUserMedia(constraints),
+          6_000,
         );
-        console.log('[Eye] camera stream acquired');
+        console.log('[Eye] camera stream acquired directly');
       } catch (e) {
-        console.error('[Eye] getUserMedia failed:', e);
-        if (!cancelled) {
-          const name = (e as DOMException)?.name;
-          if (name === 'NotAllowedError') onError('denied');
-          else setFailMsg(`Couldn’t start the camera (${name ?? 'error'}).`);
+        if (cancelled) return;
+        const name = (e as DOMException)?.name;
+        console.warn('[Eye] direct getUserMedia failed:', name);
+        if (name && name !== 'NotAllowedError' && name !== 'NotFoundError') {
+          setFailMsg(`Couldn’t start the camera (${name}).`);
+          return;
         }
-        return;
+        // Not granted (or it hung): grant via the helper tab, wait for it to fully
+        // release the camera, then retry directly.
+        const granted = await openCameraPermissionTab();
+        if (cancelled) return;
+        if (!granted) {
+          onError('denied');
+          return;
+        }
+        await delay(1500);
+        if (cancelled) return;
+        try {
+          stream = await withTimeout(
+            navigator.mediaDevices.getUserMedia(constraints),
+            8_000,
+          );
+          console.log('[Eye] camera stream acquired after grant');
+        } catch {
+          if (!cancelled) {
+            setFailMsg(
+              'Couldn’t start the camera after granting access. Close any other camera apps/tabs and try again.',
+            );
+          }
+          return;
+        }
       }
       if (cancelled) return;
 
@@ -544,6 +564,10 @@ function waitForVideoFrame(video: HTMLVideoElement, ms: number): Promise<boolean
     }, 150);
     const to = window.setTimeout(() => finish(false), ms);
   });
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 /** Reject if a promise doesn't settle in time — guards against a stuck camera open. */
