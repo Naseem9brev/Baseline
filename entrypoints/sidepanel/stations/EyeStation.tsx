@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getFaceLandmarker } from '@/lib/mediapipe';
-import { openCameraPermissionTab } from '@/lib/cameraPermission';
+import { openExtensionCameraSettings } from '@/lib/cameraPermission';
 import {
   blinkRate,
   countBlinks,
@@ -97,48 +97,30 @@ export default function EyeStation({
       if (cancelled) return;
       console.log('[Eye] VitalLens key present:', useVitalLens);
 
-      // Try the camera DIRECTLY first. If it's already granted this returns a live
-      // track without opening the permission helper tab — whose camera use was
-      // ending the side-panel track (state "ended", 2x2).
+      // Acquire the camera directly. This works reliably when camera is set to
+      // "Allow" in the extension's site settings (no flaky helper-tab dance).
       try {
         console.log('[Eye] requesting getUserMedia…');
         stream = await withTimeout(
           navigator.mediaDevices.getUserMedia(constraints),
-          6_000,
+          8_000,
         );
         console.log('[Eye] camera stream acquired directly');
       } catch (e) {
         if (cancelled) return;
         const name = (e as DOMException)?.name;
-        console.warn('[Eye] direct getUserMedia failed:', name);
-        if (name && name !== 'NotAllowedError' && name !== 'NotFoundError') {
-          setFailMsg(`Couldn’t start the camera (${name}).`);
-          return;
-        }
-        // Not granted (or it hung): grant via the helper tab, wait for it to fully
-        // release the camera, then retry directly.
-        const granted = await openCameraPermissionTab();
-        if (cancelled) return;
-        if (!granted) {
-          onError('denied');
-          return;
-        }
-        await delay(1500);
-        if (cancelled) return;
-        try {
-          stream = await withTimeout(
-            navigator.mediaDevices.getUserMedia(constraints),
-            8_000,
+        console.warn('[Eye] getUserMedia failed:', name ?? (e as Error)?.message);
+        if (name === 'NotReadableError' || name === 'TrackStartError') {
+          setFailMsg(
+            'The camera is in use by another app or tab (Zoom, FaceTime, Meet…). Close it and try again.',
           );
-          console.log('[Eye] camera stream acquired after grant');
-        } catch {
-          if (!cancelled) {
-            setFailMsg(
-              'Couldn’t start the camera after granting access. Close any other camera apps/tabs and try again.',
-            );
-          }
-          return;
+        } else if (name === 'NotFoundError') {
+          setFailMsg('No camera found on this device.');
+        } else {
+          // NotAllowedError, or a hang (a side panel can't show the prompt).
+          setFailMsg('needs-permission');
         }
+        return;
       }
       if (cancelled) return;
 
@@ -332,22 +314,41 @@ export default function EyeStation({
   }, [attempt]);
 
   if (failMsg) {
+    const needsPerm = failMsg === 'needs-permission';
+    const retry = () => {
+      setFailMsg(null);
+      setComputed(null);
+      setPhase('init');
+      setRemaining(Math.ceil(CAPTURE_MS / 1000));
+      setAttempt((a) => a + 1);
+    };
     return (
       <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
         <p className="text-sm font-medium text-amber-800">
           Eye check couldn’t start
         </p>
-        <p className="text-xs text-amber-700">{failMsg}</p>
+        <p className="text-xs text-amber-700">
+          {needsPerm
+            ? 'Camera access isn’t enabled for Baseline yet. Open camera settings, set Camera to “Allow”, then come back and tap Try again.'
+            : failMsg}
+        </p>
+        {needsPerm && (
+          <button
+            onClick={openExtensionCameraSettings}
+            className="w-full rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          >
+            Open camera settings
+          </button>
+        )}
         <div className="flex gap-2">
           <button
-            onClick={() => {
-              setFailMsg(null);
-              setComputed(null);
-              setPhase('init');
-              setRemaining(Math.ceil(CAPTURE_MS / 1000));
-              setAttempt((a) => a + 1);
-            }}
-            className="flex-1 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+            onClick={retry}
+            className={
+              'flex-1 rounded-lg py-2 text-sm font-semibold ' +
+              (needsPerm
+                ? 'border border-teal-300 bg-white text-teal-800 hover:bg-teal-50'
+                : 'bg-teal-600 text-white hover:bg-teal-700')
+            }
           >
             Try again
           </button>
@@ -556,10 +557,6 @@ function waitForVideoFrame(video: HTMLVideoElement, ms: number): Promise<boolean
     }, 150);
     const to = window.setTimeout(() => finish(false), ms);
   });
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 /** Reject if a promise doesn't settle in time — guards against a stuck camera open. */
