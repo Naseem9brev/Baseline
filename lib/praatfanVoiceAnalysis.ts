@@ -32,11 +32,13 @@ export interface VoiceAnalysisResult {
 let initPromise: Promise<void> | null = null;
 
 /** Stable extension URL — avoids broken /assets/… resolution in WXT dev side panel. */
-const PRAATFAN_WASM_URL = chrome.runtime.getURL('praatfan/praatfan_rust_bg.wasm');
+function praatfanWasmUrl(): string {
+  return chrome.runtime.getURL('praatfan/praatfan_rust_bg.wasm');
+}
 
 async function ensurePraatfan(): Promise<void> {
   if (!initPromise) {
-    initPromise = initPraatfan(PRAATFAN_WASM_URL)
+    initPromise = initPraatfan(praatfanWasmUrl())
       .then(() => undefined)
       .catch((err) => {
         initPromise = null;
