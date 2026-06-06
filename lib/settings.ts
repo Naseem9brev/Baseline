@@ -33,6 +33,18 @@ export async function getZaiApiKey(): Promise<string | null> {
   return key || null;
 }
 
+export async function getElevenLabsApiKey(): Promise<string | null> {
+  const stored = (await getSettings()).elevenLabsApiKey.trim();
+  if (stored) return stored;
+  const env = import.meta.env.VITE_ELEVENLABS_API_KEY?.trim();
+  return env || null;
+}
+
+export async function getElevenLabsVoiceId(): Promise<string | null> {
+  const id = (await getSettings()).elevenLabsVoiceId.trim();
+  return id || null;
+}
+
 export function onSettingsChanged(cb: (settings: AppSettings) => void): () => void {
   const listener = (
     changes: Record<string, chrome.storage.StorageChange>,

@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/kill-dev-ports.mjs",
     "dev": "wxt",
     "build": "wxt build",
     "preview": "wxt build",
