@@ -43,18 +43,44 @@ export function scoreVoice(f: RawVoiceFeatures): StationScore {
   return { score: clamp(score), note: provisionalNote(score) };
 }
 
+const MEMORY_TARGET: Record<RawReactionFeatures['memoryDifficulty'], number> = {
+  easy: 6,
+  medium: 5,
+  hard: 4,
+};
+
+export interface ReactionSubScores {
+  tap: number;
+  choice: number;
+  choiceAcc: number;
+  memory: number;
+  wpm: number;
+  typingAcc: number;
+}
+
+export function reactionSubScores(f: RawReactionFeatures): ReactionSubScores {
+  return {
+    // Placeholder — 500 ms -> 50 (midpoint), 300 ms -> 100, floor 40.
+    tap: Math.max(40, clamp(50 + (500 - f.reactionMs) / 4)),
+    choice: clamp(100 - (f.choiceReactionMs - 200) / 5),
+    choiceAcc: clamp(f.choiceAccuracy * 100),
+    memory: clamp(
+      (f.memoryMaxLength / MEMORY_TARGET[f.memoryDifficulty]) * 100,
+    ),
+    wpm: clamp(f.wpm * 2.5),
+    typingAcc: clamp(f.accuracy * 100),
+  };
+}
+
 export function scoreReaction(f: RawReactionFeatures): StationScore {
-  const reaction = clamp(100 - (f.reactionMs - 150) / 4); // 150ms -> 100, 550ms -> 0
-  const choice = clamp(100 - (f.choiceReactionMs - 200) / 5); // 200ms -> 100, 700ms -> 0
-  const choiceAcc = clamp(f.choiceAccuracy * 100);
-  const speed = clamp(f.wpm * 2.5); // 40 wpm -> 100
-  const accuracy = clamp(f.accuracy * 100);
+  const s = reactionSubScores(f);
   const score = Math.round(
-    0.25 * reaction +
-      0.25 * choice +
-      0.15 * choiceAcc +
-      0.2 * speed +
-      0.15 * accuracy,
+    0.2 * s.tap +
+      0.2 * s.choice +
+      0.1 * s.choiceAcc +
+      0.15 * s.memory +
+      0.2 * s.wpm +
+      0.15 * s.typingAcc,
   );
   return { score: clamp(score), note: provisionalNote(score) };
 }
