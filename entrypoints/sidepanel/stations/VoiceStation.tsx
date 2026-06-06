@@ -371,39 +371,12 @@ export default function VoiceStation({
 
   useEffect(() => {
     if (phase !== 'ready') return;
-
-    let cancelled = false;
-    void prefetchInstructions(INSTRUCTION).then((err) => {
-      if (cancelled || !err) return;
-      if (err.status === 'no_key') {
-        setInstructionAudio('no_key');
-        setInstructionError('Add your ElevenLabs API key in Settings to hear instructions aloud.');
-        return;
-      }
-      setInstructionAudio('error');
-      if (err.status === 'api_error') {
-        setInstructionError(err.detail);
-      } else if (err.status === 'playback_blocked') {
-        setInstructionError('Tap Hear instructions to play audio.');
-      }
-    });
-
+    void playInstructions();
     return () => {
-      cancelled = true;
       instructionRunRef.current += 1;
       stopInstructions();
     };
-  }, [phase]);
-
-  const replayInstructions = useCallback(async () => {
-    if (replayBusy || instructionAudio === 'speaking') return;
-    setReplayBusy(true);
-    try {
-      await playInstructions();
-    } finally {
-      setReplayBusy(false);
-    }
-  }, [instructionAudio, playInstructions, replayBusy]);
+  }, [phase, playInstructions]);
 
   const skipToNext = useCallback(() => {
     instructionRunRef.current += 1;
@@ -442,21 +415,6 @@ export default function VoiceStation({
           </kbd>{' '}
           while you speak, then release.
         </p>
-        {instructionError ? (
-          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            {instructionError}
-          </p>
-        ) : null}
-        {instructionAudio === 'done' || instructionAudio === 'error' || instructionAudio === 'no_key' ? (
-          <button
-            type="button"
-            disabled={replayBusy || instructionsBusy}
-            onClick={() => void replayInstructions()}
-            className="mt-3 text-sm font-medium text-teal-600 hover:text-teal-700 disabled:opacity-50"
-          >
-            {replayBusy ? 'Loading…' : 'Hear instructions again'}
-          </button>
-        ) : null}
       </div>
 
       <div className="grid place-items-center gap-4 rounded-xl bg-slate-900 p-6">
@@ -471,8 +429,8 @@ export default function VoiceStation({
                 ? instructionAudio === 'loading'
                   ? 'Loading instructions…'
                   : 'Listen to the instructions…'
-                : instructionAudio === 'idle'
-                  ? 'Tap Hear instructions first'
+                : instructionError
+                  ? instructionError
                   : instructionAudio === 'done'
                     ? 'Ready when you are'
                     : micReady
@@ -480,27 +438,24 @@ export default function VoiceStation({
                       : 'Allow microphone access when prompted'}
         </p>
 
-        {(instructionAudio === 'idle' ||
-          instructionAudio === 'loading' ||
-          instructionAudio === 'speaking' ||
-          instructionAudio === 'error') ? (
-          <button
-            type="button"
-            disabled={instructionsBusy}
-            onClick={() => void playInstructions()}
-            className={
-              'min-h-12 min-w-[14rem] rounded-xl px-6 text-base font-semibold transition-colors ' +
-              'bg-indigo-500 text-white hover:bg-indigo-600' +
-              (instructionsBusy ? ' cursor-not-allowed opacity-60' : '')
-            }
-          >
-            {instructionAudio === 'loading'
-              ? 'Loading…'
-              : instructionAudio === 'speaking'
-                ? 'Speaking…'
+        <button
+          type="button"
+          disabled={instructionsBusy}
+          onClick={() => void playInstructions()}
+          className={
+            'min-h-12 min-w-[14rem] rounded-xl px-6 text-base font-semibold transition-colors ' +
+            'bg-indigo-500 text-white hover:bg-indigo-600' +
+            (instructionsBusy ? ' cursor-not-allowed opacity-60' : '')
+          }
+        >
+          {instructionAudio === 'loading'
+            ? 'Loading…'
+            : instructionAudio === 'speaking'
+              ? 'Speaking…'
+              : instructionAudio === 'done'
+                ? 'Hear instructions again'
                 : 'Hear instructions'}
-          </button>
-        ) : null}
+        </button>
 
         <button
           type="button"
