@@ -8,6 +8,7 @@ import EyeStation, { type EyeResult } from './stations/EyeStation';
 import VoiceStation from './stations/VoiceStation';
 import ReactionStation from './stations/ReactionStation';
 import ReactionAnalysis from './components/ReactionAnalysis';
+import { prefetchInstructions } from '@/lib/elevenlabs';
 import { scoreReaction, scoreVoice } from '@/lib/analysis/placeholder';
 import { combineScore } from '@/lib/analysis/score';
 import { dateKey, saveRecord } from '@/lib/storage';
@@ -25,6 +26,9 @@ function scoreEye(r: EyeResult): StationScore {
   const inRange = r.heartRateBpm >= 60 && r.heartRateBpm <= 100;
   return { score: inRange ? 80 : 55, note: `HR ≈${r.heartRateBpm} bpm` };
 }
+
+const VOICE_INSTRUCTION =
+  'Take a breath, then say “ahhhh” in a steady, comfortable tone — like at the doctor’s office.';
 
 const STEPS = [
   { key: 'face', label: 'Eye check' },
@@ -101,6 +105,7 @@ export default function CheckinFlow({
           key={key}
           onComplete={(r) => {
             stations.current.face = scoreEye(r);
+            void prefetchInstructions(VOICE_INSTRUCTION);
             advance();
           }}
           onError={setStepError}

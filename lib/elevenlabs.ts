@@ -106,6 +106,19 @@ async function fetchTtsBlob(text: string): Promise<{ blob: Blob } | SpeakResult>
   return { blob };
 }
 
+/** Start fetching TTS early (e.g. when finishing the eye check) so playback is instant on the voice step. */
+export async function prefetchInstructions(text: string): Promise<SpeakResult | null> {
+  if (cachedBlob && cachedText === text) return null;
+
+  const result = await fetchTtsBlob(text);
+  if ('blob' in result) {
+    cachedBlob = result.blob;
+    cachedText = text;
+    return null;
+  }
+  return result;
+}
+
 async function playBlob(
   blob: Blob,
   hooks?: { onPlaybackStart?: () => void },
