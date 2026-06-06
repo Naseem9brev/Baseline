@@ -483,7 +483,12 @@ function ResultCard({
             ±{band} bpm
           </span>
         </p>
-        <p className="text-[11px] text-slate-400">estimate</p>
+        <p className="text-[11px] text-slate-400">
+          estimate ·{' '}
+          {c.debug.source === 'vitallens'
+            ? 'via VitalLens (cloud)'
+            : 'on-device'}
+        </p>
 
         <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
           Blink rate <span className="font-semibold">{result.blinkRate}</span>/min
