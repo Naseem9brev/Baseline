@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import VoiceStation from '../stations/VoiceStation';
+import { testElevenLabsConnection } from '@/lib/elevenlabs';
 import {
   DEFAULT_SETTINGS,
   getSettings,
@@ -32,7 +33,7 @@ const FIELDS: {
   {
     key: 'elevenLabsApiKey',
     label: 'ElevenLabs API key (optional)',
-    hint: 'Only needed if you add spoken test instructions later.',
+    hint: 'Speaks voice-check instructions aloud before you record. Only the instruction text is sent — no health data.',
     link: { href: 'https://elevenlabs.io/', text: 'Get ElevenLabs API key →' },
     placeholder: 'Optional',
   },
@@ -48,6 +49,8 @@ export default function SettingsView() {
   const [saved, setSaved] = useState(false);
   const [voiceTestOpen, setVoiceTestOpen] = useState(false);
   const [voiceTestKey, setVoiceTestKey] = useState(0);
+  const [ttsTest, setTtsTest] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle');
+  const [ttsTestMessage, setTtsTestMessage] = useState<string | null>(null);
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -62,6 +65,26 @@ export default function SettingsView() {
     await saveSettings(settings);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function testReadAloud() {
+    setTtsTest('testing');
+    setTtsTestMessage(null);
+    await persist();
+    const result = await testElevenLabsConnection();
+    if (result.status === 'played') {
+      setTtsTest('ok');
+      setTtsTestMessage('ElevenLabs connected — open the voice test and tap Hear instructions.');
+      return;
+    }
+    setTtsTest('fail');
+    setTtsTestMessage(
+      result.status === 'no_key'
+        ? 'No API key saved yet.'
+        : result.status === 'api_error'
+          ? result.detail
+          : 'Connection OK but playback was blocked.',
+    );
   }
 
   return (
@@ -116,6 +139,25 @@ export default function SettingsView() {
 
         {saved ? (
           <p className="mt-2 text-center text-xs text-emerald-600">Settings saved.</p>
+        ) : null}
+
+        <button
+          type="button"
+          disabled={ttsTest === 'testing' || !settings.elevenLabsApiKey.trim()}
+          onClick={() => void testReadAloud()}
+          className="mt-4 min-h-11 w-full rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          {ttsTest === 'testing' ? 'Testing ElevenLabs…' : 'Test ElevenLabs connection'}
+        </button>
+        {ttsTestMessage ? (
+          <p
+            className={
+              'mt-2 text-center text-xs ' +
+              (ttsTest === 'ok' ? 'text-emerald-600' : 'text-amber-700')
+            }
+          >
+            {ttsTestMessage}
+          </p>
         ) : null}
       </div>
 

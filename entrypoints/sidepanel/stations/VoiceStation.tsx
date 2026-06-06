@@ -4,6 +4,7 @@ import {
   buildPlainEnglishSummary,
   fetchGlmVoiceSummary,
 } from '@/lib/voiceInterpretation';
+import { speakInstructions, stopInstructions } from '@/lib/elevenlabs';
 import { getZaiApiKey } from '@/lib/settings';
 import {
   analyzeSustainedVowel,
@@ -27,6 +28,7 @@ const INSTRUCTION =
   'Take a breath, then say “ahhhh” in a steady, comfortable tone — like at the doctor’s office.';
 
 type Phase = 'ready' | 'recording' | 'processing' | 'results';
+type InstructionAudio = 'idle' | 'loading' | 'speaking' | 'done' | 'no_key' | 'error';
 
 export default function VoiceStation({
   onComplete,
@@ -45,6 +47,8 @@ export default function VoiceStation({
   const [usedAi, setUsedAi] = useState(false);
   const [needsMicAccess, setNeedsMicAccess] = useState(false);
   const [micBusy, setMicBusy] = useState(false);
+  const [instructionAudio, setInstructionAudio] = useState<InstructionAudio>('loading');
+  const [instructionError, setInstructionError] = useState<string | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -56,6 +60,36 @@ export default function VoiceStation({
   const rafRef = useRef(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const meterDataRef = useRef(new Float32Array(1024));
+  const instructionRunRef = useRef(0);
+
+  const playInstructions = useCallback(async () => {
+    const runId = ++instructionRunRef.current;
+    setInstructionError(null);
+    setInstructionAudio('loading');
+    const result = await speakInstructions(INSTRUCTION, {
+      onPlaybackStart: () => {
+        if (instructionRunRef.current === runId) setInstructionAudio('speaking');
+      },
+    });
+    if (instructionRunRef.current !== runId) return;
+
+    if (result.status === 'played') {
+      setInstructionAudio('done');
+      return;
+    }
+    if (result.status === 'no_key') {
+      setInstructionAudio('no_key');
+      setInstructionError('Add your ElevenLabs API key in Settings to hear instructions aloud.');
+      return;
+    }
+    if (result.status === 'playback_blocked') {
+      setInstructionAudio('error');
+      setInstructionError('Tap Hear instructions to play audio.');
+      return;
+    }
+    setInstructionAudio('error');
+    setInstructionError(result.detail);
+  }, []);
 
   const stopMeter = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
@@ -246,7 +280,15 @@ export default function VoiceStation({
   }, [showResults, stopMeter, teardownAudio]);
 
   const startRecording = useCallback(async () => {
-    if (recordingRef.current || phase === 'processing' || phase === 'results') return;
+    if (
+      recordingRef.current ||
+      phase === 'processing' ||
+      phase === 'results' ||
+      instructionAudio === 'loading' ||
+      instructionAudio === 'speaking'
+    ) {
+      return;
+    }
     setHint(null);
 
     if (!(await probeMicrophone())) {
@@ -263,7 +305,7 @@ export default function VoiceStation({
     recordingRef.current = true;
     setPhase('recording');
     runMeter();
-  }, [ensureMic, phase, runMeter]);
+  }, [ensureMic, instructionAudio, phase, runMeter]);
 
   const stopRecording = useCallback(() => {
     if (!recordingRef.current) return;
@@ -286,7 +328,15 @@ export default function VoiceStation({
         return;
       }
       e.preventDefault();
-      if (recordingRef.current || phase === 'processing' || phase === 'results') return;
+      if (
+        recordingRef.current ||
+        phase === 'processing' ||
+        phase === 'results' ||
+        instructionAudio === 'loading' ||
+        instructionAudio === 'speaking'
+      ) {
+        return;
+      }
       spaceHeldRef.current = true;
       void startRecording();
     };
@@ -305,7 +355,7 @@ export default function VoiceStation({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [phase, startRecording, stopRecording]);
+  }, [instructionAudio, phase, startRecording, stopRecording]);
 
   useEffect(() => {
     if (phase !== 'recording') return;
@@ -316,6 +366,15 @@ export default function VoiceStation({
   }, [phase, stopRecording]);
 
   useEffect(() => () => teardownAudio(), [teardownAudio]);
+
+  useEffect(() => {
+    if (phase !== 'ready') return;
+    void playInstructions();
+    return () => {
+      instructionRunRef.current += 1;
+      stopInstructions();
+    };
+  }, [phase, playInstructions]);
 
   if (phase === 'results' && result) {
     return (
@@ -330,6 +389,9 @@ export default function VoiceStation({
   }
 
   const recording = phase === 'recording';
+  const instructionsBusy =
+    instructionAudio === 'loading' || instructionAudio === 'speaking';
+  const canRecord = !instructionsBusy && phase !== 'processing';
 
   return (
     <div className="space-y-4">
@@ -353,21 +415,48 @@ export default function VoiceStation({
             ? 'Analysing with praatfan…'
             : recording
               ? 'Recording… say “ahhhh” now'
-              : micReady
-                ? 'Ready when you are'
-                : 'Allow microphone access when prompted'}
+              : instructionsBusy
+                ? instructionAudio === 'loading'
+                  ? 'Loading instructions…'
+                  : 'Listen to the instructions…'
+                : instructionError
+                  ? instructionError
+                  : instructionAudio === 'done'
+                    ? 'Ready when you are'
+                    : micReady
+                      ? 'Ready when you are'
+                      : 'Allow microphone access when prompted'}
         </p>
 
         <button
           type="button"
-          disabled={phase === 'processing'}
+          disabled={instructionsBusy}
+          onClick={() => void playInstructions()}
+          className={
+            'min-h-12 min-w-[14rem] rounded-xl px-6 text-base font-semibold transition-colors ' +
+            'bg-indigo-500 text-white hover:bg-indigo-600' +
+            (instructionsBusy ? ' cursor-not-allowed opacity-60' : '')
+          }
+        >
+          {instructionAudio === 'loading'
+            ? 'Loading…'
+            : instructionAudio === 'speaking'
+              ? 'Speaking…'
+              : instructionAudio === 'done'
+                ? 'Hear instructions again'
+                : 'Hear instructions'}
+        </button>
+
+        <button
+          type="button"
+          disabled={phase === 'processing' || !canRecord}
           onClick={() => void toggleRecording()}
           className={
             'min-h-12 min-w-[12rem] rounded-xl px-6 text-base font-semibold transition-colors ' +
             (recording
               ? 'bg-rose-500 text-white hover:bg-rose-600'
               : 'bg-teal-500 text-white hover:bg-teal-600') +
-            (phase === 'processing' ? ' cursor-not-allowed opacity-60' : '')
+            (phase === 'processing' || !canRecord ? ' cursor-not-allowed opacity-60' : '')
           }
         >
           {phase === 'processing'

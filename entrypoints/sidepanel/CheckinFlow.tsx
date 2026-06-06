@@ -106,6 +106,14 @@ export default function CheckinFlow({
           key={key}
           onComplete={(r) => {
             stations.current.face = scoreEye(r);
+            raw.current.face = {
+              blinkRate: r.blinkRate,
+              eyeOpenness: 0,
+              irisStability: 0,
+              framesDetected: 0,
+              heartRateBpm: r.heartRateBpm,
+              hrConfidence: r.hrConfidence,
+            };
             advance();
           }}
           onError={setStepError}

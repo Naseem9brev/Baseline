@@ -23,6 +23,10 @@ export interface RawFaceFeatures {
   irisStability: number;
   /** Number of frames the face was actually detected in. */
   framesDetected: number;
+  /** rPPG-estimated resting heart rate (bpm), when captured via camera. */
+  heartRateBpm?: number;
+  /** 0..1 confidence for the HR estimate. */
+  hrConfidence?: number;
 }
 
 export interface RawVoiceFeatures {
