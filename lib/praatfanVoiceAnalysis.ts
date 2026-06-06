@@ -33,7 +33,10 @@ let initPromise: Promise<void> | null = null;
 
 async function ensurePraatfan(): Promise<void> {
   if (!initPromise) {
-    initPromise = initPraatfan().then(() => undefined);
+    initPromise = initPraatfan().then(() => undefined).catch((err) => {
+      initPromise = null;
+      throw err;
+    });
   }
   await initPromise;
 }
