@@ -100,28 +100,32 @@ const GLM_SYSTEM_PROMPT =
 export async function fetchGlmReactionSummary(
   raw: RawReactionFeatures,
   score: StationScore,
+  apiKey?: string,
 ): Promise<string | null> {
   const sub = reactionSubScores(raw);
 
-  return chatCompletion([
-    { role: 'system', content: GLM_SYSTEM_PROMPT },
-    {
-      role: 'user',
-      content: JSON.stringify({
-        task: 'reaction station (tap, arrows, memory, typing)',
-        metrics: raw,
-        subScores: {
-          tap: sub.tap,
-          arrowChoice: Math.round((sub.choice + sub.choiceAcc) / 2),
-          memory: sub.memory,
-          typing: Math.round((sub.wpm + sub.typingAcc) / 2),
-          combined: score.score,
-        },
-        meaningGuide: METRIC_MEANING,
-        note: score.note,
-      }),
-    },
-  ]);
+  return chatCompletion(
+    [
+      { role: 'system', content: GLM_SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          task: 'reaction station (tap, arrows, memory, typing)',
+          metrics: raw,
+          subScores: {
+            tap: sub.tap,
+            arrowChoice: Math.round((sub.choice + sub.choiceAcc) / 2),
+            memory: sub.memory,
+            typing: Math.round((sub.wpm + sub.typingAcc) / 2),
+            combined: score.score,
+          },
+          meaningGuide: METRIC_MEANING,
+          note: score.note,
+        }),
+      },
+    ],
+    { apiKey },
+  );
 }
 
 /** Instant fallback plus optional GLM upgrade. */

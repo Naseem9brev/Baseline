@@ -12,9 +12,9 @@ export interface ZaiMessage {
 /** Call GLM 5.1 via Z.AI. Returns null if no key or request fails. */
 export async function chatCompletion(
   messages: ZaiMessage[],
-  options?: { model?: string; temperature?: number },
+  options?: { model?: string; temperature?: number; apiKey?: string },
 ): Promise<string | null> {
-  const apiKey = await getZaiApiKey();
+  const apiKey = options?.apiKey?.trim() || (await getZaiApiKey());
   if (!apiKey) return null;
 
   const controller = new AbortController();

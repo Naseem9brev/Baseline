@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { reactionSubScores } from '@/lib/analysis/placeholder';
 import type { RawReactionFeatures, StationScore } from '@/lib/analysis/types';
 import {
   buildPlainEnglishSummary,
   fetchGlmReactionSummary,
 } from '@/lib/reactionInterpretation';
-import { getZaiApiKey } from '@/lib/settings';
+import { getZaiApiKey, saveSettings } from '@/lib/settings';
 
 const DIFFICULTY_LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
 
@@ -25,23 +25,51 @@ export default function ReactionAnalysis({
   const [summary, setSummary] = useState(() => buildPlainEnglishSummary(raw, score));
   const [aiEnhancing, setAiEnhancing] = useState(false);
   const [usedAi, setUsedAi] = useState(false);
+  const [keyInput, setKeyInput] = useState('');
+  const [aiFailed, setAiFailed] = useState(false);
+
+  const runAiSummary = useCallback(
+    async (apiKey: string) => {
+      const trimmed = apiKey.trim();
+      if (!trimmed) return;
+
+      setAiFailed(false);
+      setAiEnhancing(true);
+      try {
+        await saveSettings({ zaiApiKey: trimmed });
+        const glmSummary = await fetchGlmReactionSummary(raw, score, trimmed);
+        if (glmSummary) {
+          setSummary(glmSummary);
+          setUsedAi(true);
+        } else {
+          setAiFailed(true);
+        }
+      } finally {
+        setAiEnhancing(false);
+      }
+    },
+    [raw, score],
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       setUsedAi(false);
+      setAiFailed(false);
       setSummary(buildPlainEnglishSummary(raw, score));
 
-      const hasZaiKey = !!(await getZaiApiKey());
-      if (!hasZaiKey || cancelled) return;
+      const storedKey = await getZaiApiKey();
+      if (!storedKey || cancelled) return;
 
       setAiEnhancing(true);
       try {
-        const glmSummary = await fetchGlmReactionSummary(raw, score);
+        const glmSummary = await fetchGlmReactionSummary(raw, score, storedKey);
         if (!cancelled && glmSummary) {
           setSummary(glmSummary);
           setUsedAi(true);
+        } else if (!cancelled) {
+          setAiFailed(true);
         }
       } finally {
         if (!cancelled) setAiEnhancing(false);
@@ -109,9 +137,48 @@ export default function ReactionAnalysis({
             Summary by GLM 5.1 · only your numbers were sent
           </p>
         ) : (
-          <p className="mt-3 text-[10px] text-slate-400">
-            Add a Z.AI API key in Settings for an AI-written summary (optional)
-          </p>
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-slate-500">
+              Optional: add your Z.AI key for a personalised AI summary of each stat.
+            </p>
+            <label htmlFor="reaction-zai-key" className="sr-only">
+              Z.AI API key
+            </label>
+            <input
+              id="reaction-zai-key"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              value={keyInput}
+              placeholder="Paste your Z.AI key"
+              onChange={(e) => setKeyInput(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none ring-teal-500/30 placeholder:text-slate-400 focus:border-teal-500 focus:ring-2"
+            />
+            <a
+              href="https://z.ai/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-xs font-medium text-teal-600 hover:text-teal-700"
+            >
+              Get Z.AI API key →
+            </a>
+            {aiFailed ? (
+              <p className="text-xs text-amber-700">
+                Could not reach GLM — check your key and try again.
+              </p>
+            ) : null}
+            <button
+              type="button"
+              disabled={!keyInput.trim() || aiEnhancing}
+              onClick={() => void runAiSummary(keyInput)}
+              className="min-h-10 w-full rounded-lg border border-teal-200 bg-teal-50 text-sm font-semibold text-teal-800 hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Personalise with AI
+            </button>
+            <p className="text-[10px] text-slate-400">
+              Saved on this device only · also used for voice summaries
+            </p>
+          </div>
         )}
       </div>
 
