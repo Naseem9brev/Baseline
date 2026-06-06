@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getFaceLandmarker } from '@/lib/mediapipe';
 import { openExtensionCameraSettings } from '@/lib/cameraPermission';
-import {
-  blinkRate,
-  countBlinks,
-  eyeAspectRatio,
-  foreheadROI,
-  meanRGB,
-} from '@/lib/eyeMetrics';
-import { estimateHeartRate } from '@/lib/rppg';
+import { blinkRate, countBlinks, eyeAspectRatio } from '@/lib/eyeMetrics';
 import { getVitalLensApiKey } from '@/lib/settings';
 import {
   estimateHeartRateVitalLens,
@@ -42,9 +35,8 @@ interface Computed {
   debug: {
     elapsedSec: number;
     faceFrames: number;
-    greenSamples: number;
+    vlFrames: number;
     trackEnded: boolean;
-    source: 'vitallens' | 'on-device';
   };
 }
 
@@ -70,19 +62,13 @@ export default function EyeStation({
 
     let disposed = false;
 
-    const sampleCanvas = document.createElement('canvas');
-    const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true })!;
-
-    // 40×40 face crop for VitalLens cloud rPPG (only collected when a key is set).
+    // 40×40 face crop for VitalLens cloud rPPG.
     const vlCanvas = document.createElement('canvas');
     vlCanvas.width = VL_SIZE;
     vlCanvas.height = VL_SIZE;
     const vlCtx = vlCanvas.getContext('2d', { willReadFrequently: true })!;
     const vlFrames: Uint8Array[] = [];
-    let useVitalLens = false;
 
-    const times: number[] = [];
-    const greens: number[] = [];
     const earSeries: number[] = [];
     let faceFrames = 0;
     let trackEnded = false;
@@ -93,9 +79,12 @@ export default function EyeStation({
     };
 
     async function run() {
-      useVitalLens = !!(await getVitalLensApiKey());
+      const hasKey = !!(await getVitalLensApiKey());
       if (cancelled) return;
-      console.log('[Eye] VitalLens key present:', useVitalLens);
+      if (!hasKey) {
+        setFailMsg('needs-vitallens-key');
+        return;
+      }
 
       // Acquire the camera directly. This works reliably when camera is set to
       // "Allow" in the extension's site settings (no flaky helper-tab dance).
@@ -174,10 +163,8 @@ export default function EyeStation({
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         if (vw > 0) {
-          if (sampleCanvas.width !== vw) {
-            console.log('[Eye] first frames', vw, 'x', vh, '| track', video.srcObject && (video.srcObject as MediaStream).getVideoTracks()[0]?.readyState);
-            sampleCanvas.width = vw;
-            sampleCanvas.height = vh;
+          if (overlay.width !== vw) {
+            console.log('[Eye] first frames', vw, 'x', vh);
             overlay.width = vw;
             overlay.height = vh;
           }
@@ -188,33 +175,22 @@ export default function EyeStation({
             faceFrames++;
             earSeries.push(eyeAspectRatio(face));
 
-            // VitalLens: collect a 40×40 face crop per frame.
-            if (useVitalLens) {
-              const bb = faceBBox(face, vw, vh);
-              vlCtx.drawImage(video, bb.sx, bb.sy, bb.sw, bb.sh, 0, 0, VL_SIZE, VL_SIZE);
-              const d = vlCtx.getImageData(0, 0, VL_SIZE, VL_SIZE).data;
-              const frame = new Uint8Array(VL_FRAME_BYTES);
-              for (let i = 0, j = 0; i < d.length; i += 4) {
-                frame[j++] = d[i];
-                frame[j++] = d[i + 1];
-                frame[j++] = d[i + 2];
-              }
-              vlFrames.push(frame);
+            // Collect a 40×40 face crop per frame for VitalLens.
+            const bb = faceBBox(face, vw, vh);
+            vlCtx.drawImage(video, bb.sx, bb.sy, bb.sw, bb.sh, 0, 0, VL_SIZE, VL_SIZE);
+            const d = vlCtx.getImageData(0, 0, VL_SIZE, VL_SIZE).data;
+            const frame = new Uint8Array(VL_FRAME_BYTES);
+            for (let i = 0, j = 0; i < d.length; i += 4) {
+              frame[j++] = d[i];
+              frame[j++] = d[i + 1];
+              frame[j++] = d[i + 2];
             }
+            vlFrames.push(frame);
 
-            const roi = foreheadROI(face, vw, vh);
-            if (roi.w > 0 && roi.h > 0) {
-              sampleCtx.drawImage(video, 0, 0, vw, vh);
-              const px = sampleCtx.getImageData(roi.x, roi.y, roi.w, roi.h).data;
-              // Collect every frame — the rPPG pipeline (detrend + high-pass) handles
-              // slow drift, so no per-frame gating is needed here.
-              times.push(now);
-              greens.push(meanRGB(px).g);
-              // draw ROI box
-              octx.strokeStyle = '#22d3ee';
-              octx.lineWidth = 3;
-              octx.strokeRect(roi.x, roi.y, roi.w, roi.h);
-            }
+            // overlay: face box
+            octx.strokeStyle = '#22d3ee';
+            octx.lineWidth = 3;
+            octx.strokeRect(bb.sx, bb.sy, bb.sw, bb.sh);
           }
         }
 
@@ -232,46 +208,56 @@ export default function EyeStation({
       const bpmRate = blinkRate(blinks, elapsedMs);
       const enoughTime = elapsedMs >= MIN_VALID_MS;
       const enoughFace = faceFrames >= MIN_FACE_FRAMES;
-
-      // On-device estimate (always computed as the fallback).
-      const local = estimateHeartRate(times, greens);
-      let bpm = local.bpm;
-      let confidence = local.confidence;
-      let valid = local.valid;
-      let source: 'vitallens' | 'on-device' = 'on-device';
-
-      // VitalLens cloud estimate — preferred when a key is set + enough frames.
-      if (useVitalLens && vlFrames.length >= MIN_VL_FRAMES) {
-        stopCapture(); // free the camera while we call the API
-        setPhase('analyzing');
-        const fps = vlFrames.length / (elapsedMs / 1000);
-        const bytes = new Uint8Array(vlFrames.length * VL_FRAME_BYTES);
-        vlFrames.forEach((f, i) => bytes.set(f, i * VL_FRAME_BYTES));
-        const vl = await estimateHeartRateVitalLens(bytes, fps);
-        if (disposed) return;
-        if (vl && vl.faceDetected && vl.bpm > 0) {
-          bpm = vl.bpm;
-          confidence = vl.confidence;
-          valid = true;
-          source = 'vitallens';
-        }
-      } else {
-        stopCapture();
-      }
-
-      console.log('[Eye] finish:', {
-        source,
+      const debug = {
         elapsedSec: Math.round(elapsedMs / 1000),
         faceFrames,
-        greenSamples: greens.length,
         vlFrames: vlFrames.length,
-        bpm,
-        confidence: Number(confidence.toFixed(2)),
+        trackEnded,
+      };
+
+      stopCapture(); // free the camera before the network call
+
+      // Not enough usable capture → ask for a retry (no on-device fallback).
+      if (!enoughTime || !enoughFace || vlFrames.length < MIN_VL_FRAMES) {
+        if (disposed) return;
+        setComputed({
+          result: {
+            heartRateBpm: 0,
+            hrConfidence: 0,
+            blinkRate: Math.round(bpmRate),
+            cameraUsed: true,
+          },
+          status: 'retry',
+          band: 5,
+          debug,
+        });
+        setPhase('result');
+        return;
+      }
+
+      // VitalLens cloud estimate — the only heart-rate source.
+      setPhase('analyzing');
+      const fps = vlFrames.length / (elapsedMs / 1000);
+      const bytes = new Uint8Array(vlFrames.length * VL_FRAME_BYTES);
+      vlFrames.forEach((f, i) => bytes.set(f, i * VL_FRAME_BYTES));
+      const vl = await estimateHeartRateVitalLens(bytes, fps);
+      if (disposed) return;
+
+      if (!vl || !vl.faceDetected || vl.bpm <= 0) {
+        setFailMsg('vitallens-failed');
+        return;
+      }
+
+      console.log('[Eye] finish (VitalLens):', {
+        bpm: vl.bpm,
+        confidence: Number(vl.confidence.toFixed(2)),
+        vlFrames: vlFrames.length,
       });
 
-      const ok = enoughTime && enoughFace && valid && confidence >= CONF_GATE;
+      const confidence = vl.confidence;
+      const ok = confidence >= CONF_GATE;
       const result: EyeResult = {
-        heartRateBpm: ok ? bpm : 0,
+        heartRateBpm: ok ? vl.bpm : 0,
         hrConfidence: confidence,
         blinkRate: Math.round(bpmRate),
         cameraUsed: true,
@@ -282,20 +268,7 @@ export default function EyeStation({
           ? 'low'
           : 'good';
       const band = confidence >= CONF_LOW ? 3 : 5;
-
-      if (disposed) return;
-      setComputed({
-        result,
-        status,
-        band,
-        debug: {
-          elapsedSec: Math.round(elapsedMs / 1000),
-          faceFrames,
-          greenSamples: greens.length,
-          trackEnded,
-          source,
-        },
-      });
+      setComputed({ result, status, band, debug });
       setPhase('result');
     }
 
@@ -315,6 +288,16 @@ export default function EyeStation({
 
   if (failMsg) {
     const needsPerm = failMsg === 'needs-permission';
+    const needsKey = failMsg === 'needs-vitallens-key';
+    const vlFailed = failMsg === 'vitallens-failed';
+    const message = needsPerm
+      ? 'Camera access isn’t enabled for Baseline yet. Open camera settings, set Camera to “Allow”, then come back and tap Try again.'
+      : needsKey
+        ? 'The eye test reads your heart rate with VitalLens. Add your VitalLens API key in the Settings tab, then tap Try again.'
+        : vlFailed
+          ? 'VitalLens couldn’t read a heart rate from that capture. Sit still in steady light and try again (check your key or monthly quota if it keeps failing).'
+          : failMsg;
+    const heading = needsKey ? 'VitalLens key needed' : 'Eye check couldn’t start';
     const retry = () => {
       setFailMsg(null);
       setComputed(null);
@@ -324,14 +307,8 @@ export default function EyeStation({
     };
     return (
       <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-        <p className="text-sm font-medium text-amber-800">
-          Eye check couldn’t start
-        </p>
-        <p className="text-xs text-amber-700">
-          {needsPerm
-            ? 'Camera access isn’t enabled for Baseline yet. Open camera settings, set Camera to “Allow”, then come back and tap Try again.'
-            : failMsg}
-        </p>
+        <p className="text-sm font-medium text-amber-800">{heading}</p>
+        <p className="text-xs text-amber-700">{message}</p>
         {needsPerm && (
           <button
             onClick={openExtensionCameraSettings}
@@ -484,10 +461,7 @@ function ResultCard({
           </span>
         </p>
         <p className="text-[11px] text-slate-400">
-          estimate ·{' '}
-          {c.debug.source === 'vitallens'
-            ? 'via VitalLens (cloud)'
-            : 'on-device'}
+          estimate · via VitalLens (cloud)
         </p>
 
         <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
@@ -529,8 +503,8 @@ function Spinner() {
 function DebugLine({ d }: { d: Computed['debug'] }) {
   return (
     <p className="font-mono text-[10px] text-slate-400">
-      diag · {d.source} · {d.elapsedSec}s · frames {d.faceFrames} · samples{' '}
-      {d.greenSamples} · track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
+      diag · {d.elapsedSec}s · faceFrames {d.faceFrames} · vlFrames {d.vlFrames} ·
+      track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
     </p>
   );
 }
