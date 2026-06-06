@@ -10,7 +10,7 @@
     "zip": "wxt zip",
     "compile": "tsc --noEmit",
     "fetch-praatfan": "node scripts/fetch-praatfan-wasm.mjs",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare && node scripts/fetch-praatfan-wasm.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.21",

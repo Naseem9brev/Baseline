@@ -229,10 +229,15 @@ export default function VoiceStation({
       }
 
       await showResults(analysis);
-    } catch {
+    } catch (err) {
       teardownAudio();
       setPhase('ready');
-      setHint('Voice analysis failed — please try again.');
+      const msg = err instanceof Error ? err.message : String(err);
+      setHint(
+        msg.includes('404') || msg.includes('wasm') || msg.includes('fetch')
+          ? 'Voice engine failed to load — run npm install in the project folder, then reload the extension.'
+          : 'Voice analysis failed — please try again.',
+      );
     }
   }, [showResults, stopMeter, teardownAudio]);
 
