@@ -8,7 +8,7 @@ import {
 } from '@/lib/storage';
 import type { StationKey, StationScore } from '@/lib/analysis/types';
 import { averageScore, currentStreak, totalCheckins } from '@/lib/stats';
-import { exportJson } from '@/lib/export';
+import { exportJson, exportPdf } from '@/lib/export';
 import { seedDemoData } from '@/lib/seed';
 import CheckinFlow from './CheckinFlow';
 import Heatmap from './components/Heatmap';
@@ -203,6 +203,9 @@ function HistoryTab({ records }: { records: RecordMap }) {
 
 function DataCard() {
   const [msg, setMsg] = useState('');
+  const [patientName, setPatientName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [exporting, setExporting] = useState(false);
   const flash = (m: string) => {
     setMsg(m);
     window.setTimeout(() => setMsg(''), 2500);
@@ -211,15 +214,59 @@ function DataCard() {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="text-sm font-semibold text-slate-700">Data & reminders</h2>
+      <p className="mt-1 text-xs leading-relaxed text-slate-500">
+        NHS-style monitoring record for your GP — monthly summary, flagged months, and daily readings.
+      </p>
+      <label className="mt-3 block">
+        <span className="text-xs font-medium text-slate-600">Patient name</span>
+        <input
+          type="text"
+          value={patientName}
+          onChange={(e) => setPatientName(e.target.value)}
+          placeholder="As on your NHS record"
+          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800"
+        />
+      </label>
+      <label className="mt-2 block">
+        <span className="text-xs font-medium text-slate-600">Date of birth (optional)</span>
+        <input
+          type="text"
+          value={dateOfBirth}
+          onChange={(e) => setDateOfBirth(e.target.value)}
+          placeholder="DD/MM/YYYY"
+          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800"
+        />
+      </label>
       <div className="mt-3 grid gap-2">
+        <button
+          disabled={exporting}
+          onClick={async () => {
+            setExporting(true);
+            flash('Preparing your report…');
+            try {
+              await exportPdf({
+                patientLabel: patientName.trim(),
+                dateOfBirth: dateOfBirth.trim(),
+              });
+              flash('PDF export started.');
+            } catch {
+              flash('Export failed — try again.');
+            } finally {
+              setExporting(false);
+            }
+          }}
+          className="rounded-lg bg-teal-700 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+        >
+          {exporting ? 'Preparing report…' : 'Export for GP appointment (PDF)'}
+        </button>
         <button
           onClick={async () => {
             await exportJson();
-            flash('Export started.');
+            flash('JSON export started.');
           }}
-          className="rounded-lg bg-slate-800 py-2 text-sm font-semibold text-white hover:bg-slate-900"
+          className="rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
         >
-          Export for doctor (JSON)
+          Export raw data (JSON)
         </button>
         <button
           onClick={() => {
