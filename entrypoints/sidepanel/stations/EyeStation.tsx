@@ -43,9 +43,11 @@ interface Computed {
 export default function EyeStation({
   onComplete,
   onError,
+  onSkip,
 }: {
   onComplete: (r: EyeResult) => void;
   onError: (kind: 'denied' | 'error') => void;
+  onSkip: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -401,8 +403,14 @@ export default function EyeStation({
           : 'Hold still, face steady light, look at the camera…'}
       </p>
       <p className="text-center text-[11px] text-slate-400">
-        Reading heart rate from facial colour + blink rate. Nothing is recorded.
+        Reading your heart rate from your face via VitalLens. Nothing is recorded.
       </p>
+      <button
+        onClick={onSkip}
+        className="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-400 hover:bg-slate-50"
+      >
+        Skip eye check
+      </button>
     </div>
   );
 }
