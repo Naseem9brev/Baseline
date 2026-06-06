@@ -77,14 +77,19 @@ export function openCameraPermissionTab(): Promise<boolean> {
   });
 }
 
-/** Ensure camera access for the side panel; may open a helper tab once. */
+/**
+ * Ensure camera access for the side panel; may open a helper tab once.
+ *
+ * IMPORTANT: we do NOT call getUserMedia here to "probe" — in a side panel that
+ * call can hang indefinitely when permission hasn't been granted. We gate on the
+ * Permissions API instead, and grant via a helper tab where Chrome can prompt.
+ */
 export async function ensureCameraPermission(): Promise<boolean> {
-  if (await probeCamera()) return true;
-
   const state = await queryCameraPermission();
+  if (state === 'granted') return true;
   if (state === 'denied') return false;
-
-  return openCameraPermissionTab().then(async (ok) => ok && probeCamera());
+  // 'prompt' or 'unknown' → let the user grant in a full helper tab.
+  return openCameraPermissionTab();
 }
 
 /** Opens the extension's site settings (camera + microphone live on the same page). */

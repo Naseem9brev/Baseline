@@ -71,10 +71,13 @@ export default function EyeStation({
       }
 
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: 640, height: 480 },
-          audio: false,
-        });
+        stream = await withTimeout(
+          navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: 640, height: 480 },
+            audio: false,
+          }),
+          12_000,
+        );
       } catch (e) {
         if (!cancelled) {
           onError((e as DOMException)?.name === 'NotAllowedError' ? 'denied' : 'error');
@@ -334,4 +337,14 @@ function Spinner() {
   return (
     <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
   );
+}
+
+/** Reject if a promise doesn't settle in time — guards against a stuck camera open. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      window.setTimeout(() => reject(new Error('timeout')), ms),
+    ),
+  ]);
 }
