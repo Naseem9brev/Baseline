@@ -131,6 +131,17 @@ export default function EyeStation({
         console.warn('[Eye] ⚠ video track ENDED early (side-panel camera dropped)');
       });
 
+      // Wait until the camera actually delivers frames before the timed capture —
+      // otherwise the clock runs over a black feed and yields 0 frames.
+      const gotFrame = await waitForVideoFrame(video, 8_000);
+      if (cancelled) return;
+      console.log('[Eye] first frame?', gotFrame, video.videoWidth, 'x', video.videoHeight);
+      if (!gotFrame) {
+        console.error('[Eye] camera delivered no frames (device busy?)');
+        onError('error');
+        return;
+      }
+
       let landmarker;
       try {
         console.log('[Eye] loading FaceLandmarker model…');
@@ -467,6 +478,30 @@ function DebugLine({ d }: { d: Computed['debug'] }) {
       {d.greenSamples} · track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
     </p>
   );
+}
+
+/** Resolve true once the video has real dimensions (frames flowing), else false on timeout. */
+function waitForVideoFrame(video: HTMLVideoElement, ms: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (video.videoWidth > 0) return resolve(true);
+    let done = false;
+    const finish = (v: boolean) => {
+      if (done) return;
+      done = true;
+      video.removeEventListener('loadeddata', check);
+      video.removeEventListener('playing', check);
+      window.clearInterval(iv);
+      window.clearTimeout(to);
+      resolve(v);
+    };
+    const check = () => {
+      if (video.videoWidth > 0) finish(true);
+    };
+    video.addEventListener('loadeddata', check);
+    video.addEventListener('playing', check);
+    const iv = window.setInterval(check, 200);
+    const to = window.setTimeout(() => finish(false), ms);
+  });
 }
 
 /** Reject if a promise doesn't settle in time — guards against a stuck camera open. */
