@@ -62,6 +62,7 @@ export default function EyeStation({
   const [remaining, setRemaining] = useState(Math.ceil(CAPTURE_MS / 1000));
   const [computed, setComputed] = useState<Computed | null>(null);
   const [attempt, setAttempt] = useState(0); // bump to restart capture
+  const [failMsg, setFailMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -115,7 +116,9 @@ export default function EyeStation({
       } catch (e) {
         console.error('[Eye] getUserMedia failed:', e);
         if (!cancelled) {
-          onError((e as DOMException)?.name === 'NotAllowedError' ? 'denied' : 'error');
+          const name = (e as DOMException)?.name;
+          if (name === 'NotAllowedError') onError('denied');
+          else setFailMsg(`Couldn’t start the camera (${name ?? 'error'}).`);
         }
         return;
       }
@@ -138,7 +141,9 @@ export default function EyeStation({
       console.log('[Eye] first frame?', gotFrame, video.videoWidth, 'x', video.videoHeight);
       if (!gotFrame) {
         console.error('[Eye] camera delivered no frames (device busy?)');
-        onError('error');
+        setFailMsg(
+          'Camera turned on but sent no video. Another app may be using it, or macOS is blocking the camera for Chrome (System Settings → Privacy & Security → Camera).',
+        );
         return;
       }
 
@@ -149,7 +154,8 @@ export default function EyeStation({
         console.log('[Eye] model ready');
       } catch (err) {
         console.error('[Eye] model load failed:', err);
-        if (!cancelled) onError('error');
+        if (!cancelled)
+          setFailMsg('The face model failed to load — reload the extension and try again.');
         return;
       }
       if (cancelled) return;
@@ -312,6 +318,37 @@ export default function EyeStation({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
+
+  if (failMsg) {
+    return (
+      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+        <p className="text-sm font-medium text-amber-800">
+          Eye check couldn’t start
+        </p>
+        <p className="text-xs text-amber-700">{failMsg}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setFailMsg(null);
+              setComputed(null);
+              setPhase('init');
+              setRemaining(Math.ceil(CAPTURE_MS / 1000));
+              setAttempt((a) => a + 1);
+            }}
+            className="flex-1 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          >
+            Try again
+          </button>
+          <button
+            onClick={() => onError('error')}
+            className="flex-1 rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Skip
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === 'result' && computed) {
     return (
