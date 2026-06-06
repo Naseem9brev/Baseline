@@ -4,6 +4,13 @@ import tailwindcss from '@tailwindcss/vite';
 // WXT config: https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
+  // Pin dev port so manifest CSP and sidepanel.html stay in sync (avoids blank panel).
+  dev: {
+    server: {
+      port: 3000,
+      strictPort: true,
+    },
+  },
   manifest: {
     name: 'Baseline',
     description: 'Your daily health baseline — a quick on-device check-in.',
