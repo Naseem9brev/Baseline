@@ -19,7 +19,7 @@ export default defineConfig({
           content_security_policy: {
             extension_pages:
               "script-src 'self' 'wasm-unsafe-eval' http://localhost:3000; " +
-              "connect-src 'self' http://localhost:3000 ws://localhost:3000 https://api.elevenlabs.io https://api.z.ai; " +
+              "connect-src 'self' http://localhost:3000 ws://localhost:3000 https://api.elevenlabs.io https://api.z.ai https://api.rouast.com https://generativelanguage.googleapis.com; " +
               "object-src 'self';",
           },
         }
@@ -27,7 +27,12 @@ export default defineConfig({
     // NOTE: camera/mic are NOT permissions — getUserMedia prompts directly in the
     // chrome-extension:// side panel (a secure context).
     permissions: ['storage', 'alarms', 'notifications', 'sidePanel', 'downloads', 'tabs'],
-    host_permissions: ['https://api.elevenlabs.io/*', 'https://api.z.ai/*'],
+    host_permissions: [
+      'https://api.elevenlabs.io/*',
+      'https://api.z.ai/*',
+      'https://api.rouast.com/*',
+      'https://generativelanguage.googleapis.com/*',
+    ],
     // An empty action gives us a toolbar icon; background opens the side panel on click.
     action: {},
   }),
