@@ -32,7 +32,7 @@ async function createLandmarker(): Promise<FaceLandmarker> {
 
 // Warm up the model as soon as this module is imported (i.e. when the side panel
 // opens), so the eye test doesn't pay the ~15MB model+wasm load on "Start".
-if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+if (typeof chrome !== 'undefined' && typeof chrome.runtime?.getURL === 'function') {
   void getFaceLandmarker().catch(() => {});
 }
 
