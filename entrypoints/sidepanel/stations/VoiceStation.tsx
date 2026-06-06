@@ -33,9 +33,11 @@ type InstructionAudio = 'idle' | 'loading' | 'speaking' | 'done' | 'no_key' | 'e
 export default function VoiceStation({
   onComplete,
   onError,
+  onSkip,
 }: {
   onComplete: (raw: RawVoiceFeatures) => void;
   onError: (kind: 'denied' | 'error') => void;
+  onSkip?: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>('ready');
   const [level, setLevel] = useState(0);
@@ -376,6 +378,14 @@ export default function VoiceStation({
     };
   }, [phase, playInstructions]);
 
+  const skipToNext = useCallback(() => {
+    instructionRunRef.current += 1;
+    stopInstructions();
+    recordingRef.current = false;
+    teardownAudio();
+    onSkip?.();
+  }, [onSkip, teardownAudio]);
+
   if (phase === 'results' && result) {
     return (
       <VoiceResultCard
@@ -492,6 +502,16 @@ export default function VoiceStation({
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {hint}
         </p>
+      ) : null}
+
+      {onSkip ? (
+        <button
+          type="button"
+          onClick={skipToNext}
+          className="min-h-11 w-full rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          Skip to next test
+        </button>
       ) : null}
     </div>
   );
