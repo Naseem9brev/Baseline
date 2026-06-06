@@ -232,10 +232,14 @@ export default function VoiceStation({
     } catch (err) {
       teardownAudio();
       setPhase('ready');
+      console.error('[VoiceStation] analysis failed:', err);
       const msg = err instanceof Error ? err.message : String(err);
+      const loadFailure =
+        /404|wasm|fetch|network|failed to load/i.test(msg) ||
+        err instanceof TypeError;
       setHint(
-        msg.includes('404') || msg.includes('wasm') || msg.includes('fetch')
-          ? 'Voice engine failed to load — run npm install in the project folder, then reload the extension.'
+        loadFailure
+          ? 'Voice engine failed to load — run npm install, reload the extension, and try again.'
           : 'Voice analysis failed — please try again.',
       );
     }

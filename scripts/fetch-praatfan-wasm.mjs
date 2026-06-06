@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Downloads praatfan WASM into vendor/praatfan-wasm/.
- * Skips if praatfan_rust_bg.wasm already exists (set FORCE_PRAATFAN=1 to re-download).
+ * Downloads praatfan WASM into vendor/praatfan-wasm/ and copies to public/praatfan/
+ * so chrome.runtime.getURL() works in dev and production (same pattern as MediaPipe).
  */
 import { createWriteStream, existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { execSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
@@ -14,11 +14,20 @@ const VERSION = '0.1.6';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dest = path.join(root, 'vendor', 'praatfan-wasm');
 const wasmPath = path.join(dest, 'praatfan_rust_bg.wasm');
+const publicDir = path.join(root, 'public', 'praatfan');
+const publicWasm = path.join(publicDir, 'praatfan_rust_bg.wasm');
 const url = `https://github.com/ucpresearch/praatfan-core-clean/releases/download/v${VERSION}/praatfan-wasm.tar.gz`;
 const tarball = path.join(root, '.cache', 'praatfan-wasm.tar.gz');
 
+async function syncPublicWasm() {
+  if (!existsSync(wasmPath)) return;
+  await mkdir(publicDir, { recursive: true });
+  await copyFile(wasmPath, publicWasm);
+}
+
 if (existsSync(wasmPath) && process.env.FORCE_PRAATFAN !== '1') {
-  console.log('praatfan WASM already present → vendor/praatfan-wasm/praatfan_rust_bg.wasm');
+  await syncPublicWasm();
+  console.log('praatfan WASM ready → vendor/ + public/praatfan/');
   process.exit(0);
 }
 
@@ -44,4 +53,5 @@ if (!existsSync(wasmPath)) {
   process.exit(1);
 }
 
-console.log('Done → vendor/praatfan-wasm/praatfan_rust_bg.wasm');
+await syncPublicWasm();
+console.log('Done → vendor/praatfan-wasm/ + public/praatfan/');
