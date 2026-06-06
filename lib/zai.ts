@@ -4,14 +4,14 @@ const ZAI_BASE = 'https://api.z.ai/api/paas/v4/chat/completions';
 const DEFAULT_MODEL = 'glm-5.1';
 const TIMEOUT_MS = 30_000;
 
-export interface ZaiMessage {
+export interface LlmMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
 /** Call GLM 5.1 via Z.AI. Returns null if no key or request fails. */
-export async function chatCompletion(
-  messages: ZaiMessage[],
+export async function glmChatCompletion(
+  messages: LlmMessage[],
   options?: { model?: string; temperature?: number },
 ): Promise<string | null> {
   const apiKey = await getZaiApiKey();
