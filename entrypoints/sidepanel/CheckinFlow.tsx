@@ -42,6 +42,7 @@ export default function CheckinFlow({
   async function advance() {
     setStepError(null);
     if (stepIdx + 1 >= STEPS.length) {
+      setReactionReview(null);
       setSaving(true);
       const { baselineScore, feedback } = combineScore(stations.current);
       await saveRecord({

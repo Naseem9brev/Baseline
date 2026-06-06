@@ -298,6 +298,7 @@ function ChoiceReactionTest({
         correct.current += 1;
         advanceTrial();
       } else {
+        times.current.push(performance.now() - shownAt.current);
         setState('wrong');
         window.setTimeout(advanceTrial, 600);
       }

@@ -144,5 +144,5 @@ function ScoreRing({ score }: { score: number }) {
 
 function scoreColor(score: number): string {
   const hue = Math.round((score / 100) * 130);
-  return `hsl(${hue} 65% 45%)`;
+  return `hsl(${hue}, 65%, 45%)`;
 }
