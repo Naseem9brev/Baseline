@@ -3,6 +3,8 @@
 export interface AppSettings {
   /** Z.AI platform key for GLM 5.1 (voice summaries, GP narrative). */
   zaiApiKey: string;
+  /** VitalLens API key (cloud rPPG) for accurate heart rate in the eye test. */
+  vitalLensApiKey: string;
   /** Google AI key for Gemini (alternative to GLM for summaries). */
   geminiApiKey: string;
   /** Optional ElevenLabs key if you add spoken instructions later. */
@@ -15,6 +17,7 @@ const KEY = 'baseline:settings';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   zaiApiKey: '',
+  vitalLensApiKey: '',
   geminiApiKey: '',
   elevenLabsApiKey: '',
   elevenLabsVoiceId: '',
@@ -33,6 +36,11 @@ export async function saveSettings(partial: Partial<AppSettings>): Promise<AppSe
 
 export async function getZaiApiKey(): Promise<string | null> {
   const key = (await getSettings()).zaiApiKey.trim();
+  return key || null;
+}
+
+export async function getVitalLensApiKey(): Promise<string | null> {
+  const key = (await getSettings()).vitalLensApiKey.trim();
   return key || null;
 }
 

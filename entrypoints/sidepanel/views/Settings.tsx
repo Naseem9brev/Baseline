@@ -24,6 +24,13 @@ const FIELDS: {
     placeholder: 'Paste your Z.AI key',
   },
   {
+    key: 'vitalLensApiKey',
+    label: 'VitalLens API key',
+    hint: 'Enables accurate heart rate in the eye test (cloud rPPG). Pixelated 40×40 face frames are sent to VitalLens and deleted after processing.',
+    link: { href: 'https://www.rouast.com/api/', text: 'Get VitalLens API key →' },
+    placeholder: 'Paste your VitalLens key',
+  },
+  {
     key: 'geminiApiKey',
     label: 'Gemini API key',
     hint: 'Alternative to Z.AI — used when no Z.AI key is saved. Same summaries and reviews; only your numbers are sent.',
