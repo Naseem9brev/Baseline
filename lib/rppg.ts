@@ -31,6 +31,10 @@ export function estimateHeartRate(times: number[], green: number[]): HeartRateRe
   if (sig.length < MIN_SAMPLES) return { bpm: 0, confidence: 0, valid: false };
 
   sig = detrend(sig);
+  // High-pass: subtract a moving average (~1/BAND_LO window) to remove breathing
+  // and slow lighting drift, which otherwise leak into the low edge of the band
+  // and cause false ~40 bpm reads.
+  sig = highpassMovingAverage(sig, Math.round(FS / BAND_LO) | 1);
   sig = zscore(sig);
   sig = hann(sig);
 
@@ -42,26 +46,47 @@ export function estimateHeartRate(times: number[], green: number[]): HeartRateRe
 
   const half = N >> 1;
   const freqRes = FS / N;
-  const lo = Math.max(1, Math.floor(BAND_LO / freqRes));
-  const hi = Math.min(half - 1, Math.ceil(BAND_HI / freqRes));
+  const mags = new Float64Array(half);
+  for (let i = 0; i < half; i++) mags[i] = Math.hypot(re[i], im[i]);
 
-  let peakIdx = lo;
+  const lo = Math.max(1, Math.floor(BAND_LO / freqRes));
+  const hi = Math.min(half - 2, Math.ceil(BAND_HI / freqRes));
+
+  // Pick the strongest *local* maximum in band — avoids latching onto a monotonic
+  // rise into the band edge (the cause of false ~40 bpm reads).
+  let peakIdx = -1;
   let peakMag = -1;
-  const bandMags: number[] = [];
   for (let i = lo; i <= hi; i++) {
-    const mag = Math.hypot(re[i], im[i]);
-    bandMags.push(mag);
-    if (mag > peakMag) {
-      peakMag = mag;
+    const m = mags[i];
+    if (m > mags[i - 1] && m >= mags[i + 1] && m > peakMag) {
+      peakMag = m;
       peakIdx = i;
     }
   }
+  if (peakIdx < 0) {
+    // fallback: in-band max excluding the boundary bins
+    for (let i = lo + 1; i < hi; i++) {
+      if (mags[i] > peakMag) {
+        peakMag = mags[i];
+        peakIdx = i;
+      }
+    }
+  }
+  if (peakIdx < 0) return { bpm: 0, confidence: 0, valid: false };
 
-  const bpm = Math.round(peakIdx * freqRes * 60);
+  // Quadratic (parabolic) interpolation around the peak for sub-bin precision.
+  const a = mags[peakIdx - 1];
+  const b = mags[peakIdx];
+  const c = mags[peakIdx + 1];
+  const denom = a - 2 * b + c;
+  const delta = denom !== 0 ? (0.5 * (a - c)) / denom : 0;
+  const bpm = Math.round((peakIdx + delta) * freqRes * 60);
 
   // Confidence = peak prominence vs the band's median noise floor.
-  const sorted = [...bandMags].sort((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)] || 1e-9;
+  const bandMags: number[] = [];
+  for (let i = lo; i <= hi; i++) bandMags.push(mags[i]);
+  bandMags.sort((x, y) => x - y);
+  const median = bandMags[Math.floor(bandMags.length / 2)] || 1e-9;
   const snr = peakMag / median;
   const confidence = clamp01((snr - 2) / 4); // snr<=2 → 0, snr>=6 → 1
 
@@ -107,6 +132,21 @@ export function detrend(x: number[]): number[] {
   const slope = d !== 0 ? (n * sxy - sx * sy) / d : 0;
   const intercept = (sy - slope * sx) / n;
   return x.map((val, i) => val - (slope * i + intercept));
+}
+
+/** High-pass by subtracting a centered moving average (O(n) via prefix sums). */
+function highpassMovingAverage(x: number[], win: number): number[] {
+  const n = x.length;
+  const half = Math.floor(win / 2);
+  const pre = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) pre[i + 1] = pre[i] + x[i];
+  const out = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    const a = Math.max(0, i - half);
+    const b = Math.min(n - 1, i + half);
+    out[i] = x[i] - (pre[b + 1] - pre[a]) / (b - a + 1);
+  }
+  return out;
 }
 
 function zscore(x: number[]): number[] {
