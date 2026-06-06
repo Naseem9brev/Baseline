@@ -92,7 +92,12 @@ export default function EyeStation({
 
       const video = videoRef.current!;
       video.srcObject = stream;
-      await video.play().catch(() => {});
+      await video.play().catch((e) => console.warn('[Eye] video.play() rejected', e));
+      const track = stream.getVideoTracks()[0];
+      console.log('[Eye] track:', track?.label, '| state:', track?.readyState);
+      track?.addEventListener('ended', () =>
+        console.warn('[Eye] ⚠ video track ENDED early (side-panel camera dropped)'),
+      );
 
       let landmarker;
       try {
@@ -121,6 +126,7 @@ export default function EyeStation({
         const vh = video.videoHeight;
         if (vw > 0) {
           if (sampleCanvas.width !== vw) {
+            console.log('[Eye] first frames', vw, 'x', vh, '| track', video.srcObject && (video.srcObject as MediaStream).getVideoTracks()[0]?.readyState);
             sampleCanvas.width = vw;
             sampleCanvas.height = vh;
             overlay.width = vw;
@@ -168,6 +174,13 @@ export default function EyeStation({
       const hr = estimateHeartRate(times, greens);
       const blinks = countBlinks(earSeries);
       const bpmRate = blinkRate(blinks, elapsedMs);
+      console.log('[Eye] finish:', {
+        elapsedSec: Math.round(elapsedMs / 1000),
+        faceFrames,
+        greenSamples: greens.length,
+        bpm: hr.bpm,
+        confidence: Number(hr.confidence.toFixed(2)),
+      });
 
       const enoughTime = elapsedMs >= MIN_VALID_MS;
       const enoughFace = faceFrames >= MIN_FACE_FRAMES;
