@@ -4,14 +4,10 @@ import {
   openExtensionMicSettings,
   openMicPermissionTab,
 } from '@/lib/micPermission';
-import FaceStation from './stations/FaceStation';
+import EyeStation, { type EyeResult } from './stations/EyeStation';
 import VoiceStation from './stations/VoiceStation';
 import ReactionStation from './stations/ReactionStation';
-import {
-  scoreFace,
-  scoreReaction,
-  scoreVoice,
-} from '@/lib/analysis/placeholder';
+import { scoreReaction, scoreVoice } from '@/lib/analysis/placeholder';
 import { combineScore } from '@/lib/analysis/score';
 import { dateKey, saveRecord } from '@/lib/storage';
 import type {
@@ -19,6 +15,14 @@ import type {
   StationKey,
   StationScore,
 } from '@/lib/analysis/types';
+
+// TEMP (issue #2): provisional eye score from heart rate until Person 4's scoring.ts
+// lands. The "face" slot now runs the camera EyeStation (HR + blink).
+function scoreEye(r: EyeResult): StationScore {
+  if (!r.heartRateBpm) return { score: 0, note: 'No clean reading' };
+  const inRange = r.heartRateBpm >= 60 && r.heartRateBpm <= 100;
+  return { score: inRange ? 80 : 55, note: `HR ≈${r.heartRateBpm} bpm` };
+}
 
 const STEPS = [
   { key: 'face', label: 'Eye check' },
@@ -80,11 +84,10 @@ export default function CheckinFlow({
           onSkip={advance}
         />
       ) : step === 'face' ? (
-        <FaceStation
+        <EyeStation
           key={key}
           onComplete={(r) => {
-            stations.current.face = scoreFace(r);
-            raw.current.face = r;
+            stations.current.face = scoreEye(r);
             advance();
           }}
           onError={setStepError}
