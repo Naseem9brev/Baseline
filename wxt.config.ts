@@ -15,5 +15,9 @@ export default defineConfig({
   },
   vite: () => ({
     plugins: [tailwindcss()],
+    assetsInclude: ['**/*.wasm'],
+    worker: {
+      format: 'es',
+    },
   }),
 });
