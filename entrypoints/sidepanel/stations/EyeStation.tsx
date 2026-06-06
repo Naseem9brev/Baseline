@@ -9,6 +9,13 @@ import {
   meanRGB,
 } from '@/lib/eyeMetrics';
 import { estimateHeartRate } from '@/lib/rppg';
+import { getVitalLensApiKey } from '@/lib/settings';
+import {
+  estimateHeartRateVitalLens,
+  VL_FRAME_BYTES,
+  VL_SIZE,
+} from '@/lib/vitallens';
+import type { NormalizedLandmark } from '@mediapipe/tasks-vision';
 
 /** Result emitted to the check-in flow. Camera-only station. */
 export interface EyeResult {
@@ -25,7 +32,9 @@ const CONF_GATE = 0.4; // below → don't show a number
 const CONF_LOW = 0.6; // below → show but flag "low confidence"
 const ROI_SHIFT_GATE = 0.3; // drop frames whose ROI brightness jumps >30%
 
-type Phase = 'init' | 'capturing' | 'result';
+const MIN_VL_FRAMES = 120; // ~5s — enough for a VitalLens estimate
+
+type Phase = 'init' | 'capturing' | 'analyzing' | 'result';
 
 interface Computed {
   result: EyeResult;
@@ -36,6 +45,7 @@ interface Computed {
     faceFrames: number;
     greenSamples: number;
     trackEnded: boolean;
+    source: 'vitallens' | 'on-device';
   };
 }
 
@@ -58,8 +68,18 @@ export default function EyeStation({
     let raf = 0;
     let cancelled = false;
 
+    let disposed = false;
+
     const sampleCanvas = document.createElement('canvas');
     const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true })!;
+
+    // 40×40 face crop for VitalLens cloud rPPG (only collected when a key is set).
+    const vlCanvas = document.createElement('canvas');
+    vlCanvas.width = VL_SIZE;
+    vlCanvas.height = VL_SIZE;
+    const vlCtx = vlCanvas.getContext('2d', { willReadFrequently: true })!;
+    const vlFrames: Uint8Array[] = [];
+    let useVitalLens = false;
 
     const times: number[] = [];
     const greens: number[] = [];
@@ -77,6 +97,10 @@ export default function EyeStation({
         onError('denied');
         return;
       }
+
+      useVitalLens = !!(await getVitalLensApiKey());
+      if (cancelled) return;
+      console.log('[Eye] VitalLens key present:', useVitalLens);
 
       try {
         console.log('[Eye] requesting getUserMedia…');
@@ -147,6 +171,20 @@ export default function EyeStation({
             faceFrames++;
             earSeries.push(eyeAspectRatio(face));
 
+            // VitalLens: collect a 40×40 face crop per frame.
+            if (useVitalLens) {
+              const bb = faceBBox(face, vw, vh);
+              vlCtx.drawImage(video, bb.sx, bb.sy, bb.sw, bb.sh, 0, 0, VL_SIZE, VL_SIZE);
+              const d = vlCtx.getImageData(0, 0, VL_SIZE, VL_SIZE).data;
+              const frame = new Uint8Array(VL_FRAME_BYTES);
+              for (let i = 0, j = 0; i < d.length; i += 4) {
+                frame[j++] = d[i];
+                frame[j++] = d[i + 1];
+                frame[j++] = d[i + 2];
+              }
+              vlFrames.push(frame);
+            }
+
             const roi = foreheadROI(face, vw, vh);
             if (roi.w > 0 && roi.h > 0) {
               sampleCtx.drawImage(video, 0, 0, vw, vh);
@@ -170,7 +208,7 @@ export default function EyeStation({
         }
 
         if (elapsed >= CAPTURE_MS) {
-          finish(elapsed);
+          void finish(elapsed);
           return;
         }
         raf = requestAnimationFrame(loop);
@@ -178,36 +216,63 @@ export default function EyeStation({
       raf = requestAnimationFrame(loop);
     }
 
-    function finish(elapsedMs: number) {
-      const hr = estimateHeartRate(times, greens);
+    async function finish(elapsedMs: number) {
       const blinks = countBlinks(earSeries);
       const bpmRate = blinkRate(blinks, elapsedMs);
+      const enoughTime = elapsedMs >= MIN_VALID_MS;
+      const enoughFace = faceFrames >= MIN_FACE_FRAMES;
+
+      // On-device estimate (always computed as the fallback).
+      const local = estimateHeartRate(times, greens);
+      let bpm = local.bpm;
+      let confidence = local.confidence;
+      let valid = local.valid;
+      let source: 'vitallens' | 'on-device' = 'on-device';
+
+      // VitalLens cloud estimate — preferred when a key is set + enough frames.
+      if (useVitalLens && vlFrames.length >= MIN_VL_FRAMES) {
+        stopCapture(); // free the camera while we call the API
+        setPhase('analyzing');
+        const fps = vlFrames.length / (elapsedMs / 1000);
+        const bytes = new Uint8Array(vlFrames.length * VL_FRAME_BYTES);
+        vlFrames.forEach((f, i) => bytes.set(f, i * VL_FRAME_BYTES));
+        const vl = await estimateHeartRateVitalLens(bytes, fps);
+        if (disposed) return;
+        if (vl && vl.faceDetected && vl.bpm > 0) {
+          bpm = vl.bpm;
+          confidence = vl.confidence;
+          valid = true;
+          source = 'vitallens';
+        }
+      } else {
+        stopCapture();
+      }
+
       console.log('[Eye] finish:', {
+        source,
         elapsedSec: Math.round(elapsedMs / 1000),
         faceFrames,
         greenSamples: greens.length,
-        bpm: hr.bpm,
-        confidence: Number(hr.confidence.toFixed(2)),
+        vlFrames: vlFrames.length,
+        bpm,
+        confidence: Number(confidence.toFixed(2)),
       });
 
-      const enoughTime = elapsedMs >= MIN_VALID_MS;
-      const enoughFace = faceFrames >= MIN_FACE_FRAMES;
-      const ok = enoughTime && enoughFace && hr.valid && hr.confidence >= CONF_GATE;
-
+      const ok = enoughTime && enoughFace && valid && confidence >= CONF_GATE;
       const result: EyeResult = {
-        heartRateBpm: ok ? hr.bpm : 0,
-        hrConfidence: hr.confidence,
+        heartRateBpm: ok ? bpm : 0,
+        hrConfidence: confidence,
         blinkRate: Math.round(bpmRate),
         cameraUsed: true,
       };
       const status: Computed['status'] = !ok
         ? 'retry'
-        : hr.confidence < CONF_LOW
+        : confidence < CONF_LOW
           ? 'low'
           : 'good';
-      const band = hr.confidence >= CONF_LOW ? 3 : 5;
+      const band = confidence >= CONF_LOW ? 3 : 5;
 
-      cleanup();
+      if (disposed) return;
       setComputed({
         result,
         status,
@@ -217,19 +282,23 @@ export default function EyeStation({
           faceFrames,
           greenSamples: greens.length,
           trackEnded,
+          source,
         },
       });
       setPhase('result');
     }
 
-    function cleanup() {
+    function stopCapture() {
       cancelled = true;
       cancelAnimationFrame(raf);
       stream?.getTracks().forEach((t) => t.stop());
     }
 
     run();
-    return cleanup;
+    return () => {
+      disposed = true;
+      stopCapture();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
 
@@ -246,6 +315,18 @@ export default function EyeStation({
         onSave={() => onComplete(computed.result)}
         onSkip={() => onError('error')}
       />
+    );
+  }
+
+  if (phase === 'analyzing') {
+    return (
+      <div className="grid place-items-center gap-3 rounded-xl bg-slate-900 py-14 text-center">
+        <Spinner />
+        <p className="text-sm text-white">Analyzing heart rate…</p>
+        <p className="text-[11px] text-white/60">
+          Estimating from your face via VitalLens.
+        </p>
+      </div>
     );
   }
 
@@ -382,8 +463,8 @@ function Spinner() {
 function DebugLine({ d }: { d: Computed['debug'] }) {
   return (
     <p className="font-mono text-[10px] text-slate-400">
-      diag · {d.elapsedSec}s · frames {d.faceFrames} · samples {d.greenSamples} ·
-      track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
+      diag · {d.source} · {d.elapsedSec}s · frames {d.faceFrames} · samples{' '}
+      {d.greenSamples} · track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
     </p>
   );
 }
@@ -396,4 +477,34 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
       window.setTimeout(() => reject(new Error('timeout')), ms),
     ),
   ]);
+}
+
+/** Face bounding box (source-rect in video pixels) from landmarks, padded ~10%. */
+function faceBBox(
+  face: NormalizedLandmark[],
+  w: number,
+  h: number,
+): { sx: number; sy: number; sw: number; sh: number } {
+  let minX = 1;
+  let minY = 1;
+  let maxX = 0;
+  let maxY = 0;
+  for (const p of face) {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  }
+  const padX = (maxX - minX) * 0.1;
+  const padY = (maxY - minY) * 0.1;
+  const x0 = Math.max(0, minX - padX);
+  const y0 = Math.max(0, minY - padY);
+  const x1 = Math.min(1, maxX + padX);
+  const y1 = Math.min(1, maxY + padY);
+  return {
+    sx: x0 * w,
+    sy: y0 * h,
+    sw: (x1 - x0) * w,
+    sh: (y1 - y0) * h,
+  };
 }

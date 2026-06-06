@@ -23,6 +23,13 @@ const FIELDS: {
     placeholder: 'Paste your Z.AI key',
   },
   {
+    key: 'vitalLensApiKey',
+    label: 'VitalLens API key',
+    hint: 'Enables accurate heart rate in the eye test (cloud rPPG). Pixelated 40×40 face frames are sent to VitalLens and deleted after processing. Leave blank to use the on-device estimate.',
+    link: { href: 'https://www.rouast.com/api/', text: 'Get VitalLens API key →' },
+    placeholder: 'Paste your VitalLens key',
+  },
+  {
     key: 'elevenLabsApiKey',
     label: 'ElevenLabs API key (optional)',
     hint: 'Only needed if you add spoken test instructions later.',
