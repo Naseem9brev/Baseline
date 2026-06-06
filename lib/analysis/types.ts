@@ -26,9 +26,15 @@ export interface RawFaceFeatures {
 }
 
 export interface RawVoiceFeatures {
-  /** Mean RMS loudness, 0..1. */
-  rms: number;
-  /** Length of captured speech, seconds. */
+  /** Praat local jitter (%). NHS ref: <0.5 normal, >2 flagged. */
+  jitter: number;
+  /** Praat local shimmer (%). NHS ref: <5 normal, >12 flagged. */
+  shimmer: number;
+  /** Mean harmonics-to-noise ratio (dB). NHS ref: >20 normal, <12 flagged. */
+  hnr: number;
+  /** Maximum phonation time — sustained /a/ duration (seconds). */
+  mptSec: number;
+  /** Recording duration (seconds); same as mptSec for this test. */
   durationSec: number;
 }
 
