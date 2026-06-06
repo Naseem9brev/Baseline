@@ -33,7 +33,52 @@ export default defineBackground(() => {
   });
 
   // Let the side panel trigger a test notification (for the demo).
-  chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === 'baseline:test-reminder') showReminderNotification();
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.type === 'baseline:test-reminder') {
+      showReminderNotification();
+      return;
+    }
+
+    if (msg?.type === 'baseline:elevenlabs-tts') {
+      void (async () => {
+        try {
+          const voiceId = String(msg.voiceId ?? '');
+          const url =
+            `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}` +
+            '?output_format=mp3_44100_128';
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'xi-api-key': String(msg.apiKey ?? ''),
+              'Content-Type': 'application/json',
+              Accept: 'audio/mpeg',
+            },
+            body: JSON.stringify({
+              text: String(msg.text ?? ''),
+              model_id: String(msg.modelId ?? 'eleven_multilingual_v2'),
+              voice_settings: {
+                stability: 0.6,
+                similarity_boost: 0.75,
+                style: 0,
+                use_speaker_boost: true,
+              },
+            }),
+          });
+
+          if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            sendResponse({ ok: false, status: res.status, body });
+            return;
+          }
+
+          const buffer = await res.arrayBuffer();
+          sendResponse({ ok: true, audio: Array.from(new Uint8Array(buffer)) });
+        } catch (err) {
+          console.error('[Baseline] ElevenLabs TTS proxy failed', err);
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
   });
 });
