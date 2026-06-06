@@ -38,9 +38,19 @@ export interface RawVoiceFeatures {
   durationSec: number;
 }
 
+export type MemoryDifficulty = 'easy' | 'medium' | 'hard';
+
 export interface RawReactionFeatures {
   /** Mean simple-reaction time, milliseconds. */
   reactionMs: number;
+  /** Mean choice-reaction time on correct trials, milliseconds. */
+  choiceReactionMs: number;
+  /** Choice-reaction accuracy, 0..1 (correct side / total trials). */
+  choiceAccuracy: number;
+  /** Longest sequence completed in the memory game. */
+  memoryMaxLength: number;
+  /** Grid size chosen for the memory game. */
+  memoryDifficulty: MemoryDifficulty;
   /** Typing speed, words per minute. */
   wpm: number;
   /** Typing accuracy, 0..1. */

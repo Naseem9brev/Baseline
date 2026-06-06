@@ -7,11 +7,13 @@ import {
 import EyeStation, { type EyeResult } from './stations/EyeStation';
 import VoiceStation from './stations/VoiceStation';
 import ReactionStation from './stations/ReactionStation';
+import ReactionAnalysis from './components/ReactionAnalysis';
 import { scoreReaction, scoreVoice } from '@/lib/analysis/placeholder';
 import { combineScore } from '@/lib/analysis/score';
 import { dateKey, saveRecord } from '@/lib/storage';
 import type {
   RawFeatures,
+  RawReactionFeatures,
   StationKey,
   StationScore,
 } from '@/lib/analysis/types';
@@ -39,12 +41,17 @@ export default function CheckinFlow({
   const [attempt, setAttempt] = useState(0);
   const [stepError, setStepError] = useState<null | 'denied' | 'error'>(null);
   const [saving, setSaving] = useState(false);
+  const [reactionReview, setReactionReview] = useState<{
+    raw: RawReactionFeatures;
+    score: StationScore;
+  } | null>(null);
   const stations = useRef<Partial<Record<StationKey, StationScore>>>({});
   const raw = useRef<RawFeatures>({});
 
   async function advance() {
     setStepError(null);
     if (stepIdx + 1 >= STEPS.length) {
+      setReactionReview(null);
       setSaving(true);
       const { baselineScore, feedback } = combineScore(stations.current);
       await saveRecord({
@@ -67,9 +74,15 @@ export default function CheckinFlow({
 
   return (
     <div className="space-y-4">
-      <StepHeader idx={stepIdx} />
+      <StepHeader idx={reactionReview ? STEPS.length : stepIdx} />
 
-      {saving ? (
+      {reactionReview ? (
+        <ReactionAnalysis
+          raw={reactionReview.raw}
+          score={reactionReview.score}
+          onContinue={advance}
+        />
+      ) : saving ? (
         <p className="py-8 text-center text-sm text-slate-500">
           Saving your baseline…
         </p>
@@ -106,9 +119,10 @@ export default function CheckinFlow({
         <ReactionStation
           key={key}
           onComplete={(r) => {
-            stations.current.reaction = scoreReaction(r);
+            const scored = scoreReaction(r);
+            stations.current.reaction = scored;
             raw.current.reaction = r;
-            advance();
+            setReactionReview({ raw: r, score: scored });
           }}
         />
       )}
