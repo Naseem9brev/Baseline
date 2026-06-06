@@ -480,26 +480,31 @@ function DebugLine({ d }: { d: Computed['debug'] }) {
   );
 }
 
-/** Resolve true once the video has real dimensions (frames flowing), else false on timeout. */
+/**
+ * Resolve true once a *real* video frame has been presented (not just metadata),
+ * else false on timeout. `requestVideoFrameCallback` only fires for actual painted
+ * frames, so a black/empty feed (camera busy) correctly times out.
+ */
 function waitForVideoFrame(video: HTMLVideoElement, ms: number): Promise<boolean> {
   return new Promise((resolve) => {
-    if (video.videoWidth > 0) return resolve(true);
     let done = false;
     const finish = (v: boolean) => {
       if (done) return;
       done = true;
-      video.removeEventListener('loadeddata', check);
-      video.removeEventListener('playing', check);
       window.clearInterval(iv);
       window.clearTimeout(to);
       resolve(v);
     };
-    const check = () => {
-      if (video.videoWidth > 0) finish(true);
+    const vfc = video as HTMLVideoElement & {
+      requestVideoFrameCallback?: (cb: () => void) => number;
     };
-    video.addEventListener('loadeddata', check);
-    video.addEventListener('playing', check);
-    const iv = window.setInterval(check, 200);
+    if (typeof vfc.requestVideoFrameCallback === 'function') {
+      vfc.requestVideoFrameCallback(() => finish(true));
+    }
+    // Fallback / corroboration: currentTime only advances when frames actually play.
+    const iv = window.setInterval(() => {
+      if (video.videoWidth > 0 && video.currentTime > 0) finish(true);
+    }, 150);
     const to = window.setTimeout(() => finish(false), ms);
   });
 }
