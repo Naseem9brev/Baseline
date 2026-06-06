@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   dateKey,
   getRecords,
@@ -11,13 +11,26 @@ import { averageScore, currentStreak, totalCheckins } from '@/lib/stats';
 import { exportJson, exportPdf } from '@/lib/export';
 import { seedDemoData } from '@/lib/seed';
 import CheckinFlow from './CheckinFlow';
-import Heatmap from './components/Heatmap';
 import SettingsView from './views/Settings';
+import Brand from './components/Brand';
+import { Ic } from './components/icons';
+import StatusPill, { statusFromScore } from './components/StatusPill';
+import StreakPlant, { streakWord } from './components/StreakPlant';
+import ActivityGrid, { GridLegend } from './components/ActivityGrid';
+import Sparkline from './components/Sparkline';
 
-type Tab = 'checkin' | 'history' | 'settings';
+type Tab = 'home' | 'today' | 'history';
+
+const STATION_LABELS: Record<StationKey, string> = {
+  face: 'Eye check',
+  voice: 'Voice',
+  reaction: 'Reaction',
+};
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('checkin');
+  const [tab, setTab] = useState<Tab>('home');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [running, setRunning] = useState(false);
   const [records, setRecords] = useState<RecordMap>({});
 
   useEffect(() => {
@@ -26,154 +39,223 @@ export default function App() {
   }, []);
 
   const today = records[dateKey()];
+  const streak = currentStreak(records);
+  const latest = useMemo(() => latestRecord(records), [records]);
+
+  function beginCheckin() {
+    setRunning(true);
+    setTab('today');
+  }
 
   return (
-    <div className="flex h-full flex-col bg-slate-50 text-slate-800">
-      <Header />
-      <main className="flex-1 overflow-y-auto p-4">
-        {tab === 'checkin' ? (
-          <CheckinTab today={today} />
-        ) : tab === 'history' ? (
-          <HistoryTab records={records} />
-        ) : (
+    <div className="app">
+      <header className="topbar">
+        <div className="flex items-center gap-2">
+          <Brand size={26} radius={8} />
+          <span className="serif-h" style={{ fontSize: 18 }}>
+            Baseline
+          </span>
+        </div>
+        <button
+          type="button"
+          aria-label="Settings"
+          onClick={() => setSettingsOpen((s) => !s)}
+          className="grid h-9 w-9 place-items-center rounded-lg"
+          style={{ color: settingsOpen ? 'var(--ginseng-deep)' : 'var(--ink-3)' }}
+        >
+          {settingsOpen ? <Ic.x /> : <Ic.gear />}
+        </button>
+      </header>
+
+      <main className="app-scroll">
+        {settingsOpen ? (
           <SettingsView />
+        ) : tab === 'home' ? (
+          <HomeView
+            today={today}
+            streak={streak}
+            latest={latest}
+            onBegin={beginCheckin}
+          />
+        ) : tab === 'today' ? (
+          <TodayView
+            today={today}
+            running={running}
+            onStart={() => setRunning(true)}
+            onFinished={() => setRunning(false)}
+          />
+        ) : (
+          <HistoryView records={records} streak={streak} />
         )}
       </main>
-      <BottomNav tab={tab} onTab={setTab} />
+
+      {!settingsOpen && <BottomNav tab={tab} onTab={setTab} />}
     </div>
   );
 }
 
-function Header() {
-  return (
-    <header className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-500 px-4 py-3 text-white">
-      <div className="grid h-8 w-8 place-items-center rounded-lg bg-white/20 text-lg font-bold">
-        B
-      </div>
-      <div className="leading-tight">
-        <h1 className="text-base font-semibold">Baseline</h1>
-        <p className="text-[11px] text-white/80">Your daily health check-in</p>
-      </div>
-    </header>
-  );
-}
-
-function BottomNav({
-  tab,
-  onTab,
-}: {
-  tab: Tab;
-  onTab: (t: Tab) => void;
-}) {
-  const items: { id: Tab; label: string }[] = [
-    { id: 'checkin', label: 'Check-in' },
-    { id: 'history', label: 'History' },
-    { id: 'settings', label: 'Settings' },
+function BottomNav({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
+  const items: { id: Tab; label: string; Icon: (typeof Ic)[keyof typeof Ic] }[] = [
+    { id: 'home', label: 'Home', Icon: Ic.home },
+    { id: 'today', label: 'Today', Icon: Ic.tests },
+    { id: 'history', label: 'History', Icon: Ic.history },
   ];
-
   return (
-    <nav className="flex border-t border-slate-200 bg-white px-2 pb-1 pt-1">
-      {items.map(({ id, label }) => (
+    <nav className="nav">
+      {items.map(({ id, label, Icon }) => (
         <button
           key={id}
           type="button"
           onClick={() => onTab(id)}
-          className={
-            'min-h-11 flex-1 rounded-lg py-2 text-xs font-semibold transition-colors ' +
-            (tab === id
-              ? 'bg-teal-50 text-teal-700'
-              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700')
-          }
+          className={'nav-item' + (tab === id ? ' on' : '')}
         >
-          {label}
+          <Icon />
+          <span>{label}</span>
         </button>
       ))}
     </nav>
   );
 }
 
-function CheckinTab({ today }: { today?: DayRecord }) {
-  const [running, setRunning] = useState(false);
-
-  if (running) {
-    return <CheckinFlow onFinished={() => setRunning(false)} />;
-  }
+/* ───────────────────────── Home ───────────────────────── */
+function HomeView({
+  today,
+  streak,
+  latest,
+  onBegin,
+}: {
+  today?: DayRecord;
+  streak: number;
+  latest?: DayRecord;
+  onBegin: () => void;
+}) {
+  const now = new Date();
+  const hour = now.getHours();
+  const partOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+  const dateLabel = now.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
-    <div className="space-y-4">
-      <TodayCard today={today} />
+    <div className="center-col" style={{ gap: 4 }}>
+      <p className="eyebrow" style={{ marginTop: 4 }}>
+        {dateLabel}
+      </p>
+      <h1 className="serif-h" style={{ fontSize: 26, margin: '4px 0 6px' }}>
+        Good {partOfDay}
+      </h1>
+
+      <StreakPlant streak={streak} size={188} />
+
+      <div className="tabnum serif-h" style={{ fontSize: 34, marginTop: 6 }}>
+        {streak}
+        <span style={{ fontSize: 15, color: 'var(--ink-3)' }}>
+          {' '}
+          day{streak === 1 ? '' : 's'}
+        </span>
+      </div>
+      <p className="muted" style={{ fontSize: 13.5, margin: '2px 0 12px' }}>
+        {streakWord(streak)}
+      </p>
+
+      {latest && <StatusPill status={statusFromScore(latest.baselineScore)} />}
 
       <button
-        onClick={() => setRunning(true)}
-        className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700"
+        onClick={onBegin}
+        className="card tint btn-primary"
+        style={{ marginTop: 18, textAlign: 'center' }}
       >
-        {today ? 'Check in again' : 'Start daily check-in'}
+        {today ? 'Check in again' : "Begin today's check-in"}
       </button>
-      <p className="text-center text-[11px] text-slate-400">
-        3 quick steps · eyes, voice, reaction. 100% on-device — provisional, not
+      <p className="muted" style={{ fontSize: 11.5, marginTop: 8, maxWidth: 280 }}>
+        About 60 seconds · eyes, voice, reaction. 100% on-device — provisional, not
         medical advice.
       </p>
     </div>
   );
 }
 
-function TodayCard({ today }: { today?: DayRecord }) {
+/* ───────────────────────── Today (check-in) ───────────────────────── */
+function TodayView({
+  today,
+  running,
+  onStart,
+  onFinished,
+}: {
+  today?: DayRecord;
+  running: boolean;
+  onStart: () => void;
+  onFinished: () => void;
+}) {
+  if (running) return <CheckinFlow onFinished={onFinished} />;
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-slate-700">Today</h2>
-      {today ? (
-        <>
-          <div className="mt-3 flex items-center gap-4">
-            <ScoreRing score={today.baselineScore} />
-            <p className="flex-1 text-sm text-slate-600">{today.feedback}</p>
-          </div>
-          <div className="mt-3 space-y-1.5">
-            {(Object.entries(today.stations) as [StationKey, StationScore][]).map(
-              ([key, s]) => (
-                <StationRow key={key} name={STATION_LABELS[key]} score={s} />
-              ),
-            )}
-          </div>
-        </>
-      ) : (
-        <p className="mt-2 text-sm text-slate-500">
-          No check-in yet today. Take 60 seconds to log your baseline.
-        </p>
-      )}
+    <div className="space-y-4">
+      <div className="card">
+        <p className="eyebrow">Today</p>
+        {today ? (
+          <>
+            <div className="mt-3 flex items-center gap-3">
+              <StatusPill status={statusFromScore(today.baselineScore)} />
+              <span className="tabnum serif-h" style={{ fontSize: 22 }}>
+                {today.baselineScore}
+              </span>
+            </div>
+            <p className="muted mt-2" style={{ fontSize: 13.5 }}>
+              {today.feedback}
+            </p>
+            <div className="mt-3 space-y-2">
+              {(Object.entries(today.stations) as [StationKey, StationScore][]).map(
+                ([key, s]) => (
+                  <StationRow key={key} name={STATION_LABELS[key]} score={s} />
+                ),
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="muted mt-2" style={{ fontSize: 14 }}>
+            No check-in yet today. Take 60 seconds to log your baseline.
+          </p>
+        )}
+      </div>
+
+      <button onClick={onStart} className="btn btn-primary">
+        {today ? 'Check in again' : 'Start daily check-in'}
+      </button>
     </div>
   );
 }
 
-const STATION_LABELS: Record<StationKey, string> = {
-  face: 'Eye check',
-  voice: 'Voice',
-  reaction: 'Reaction',
-};
-
 function StationRow({ name, score }: { name: string; score: StationScore }) {
+  const color =
+    score.score >= 70 ? 'var(--sage)' : score.score >= 45 ? 'var(--saffron)' : 'var(--jujube)';
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-20 shrink-0 text-slate-500">{name}</span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${score.score}%`,
-            backgroundColor: scoreColor(score.score),
-          }}
-        />
+    <div className="flex items-center gap-2" style={{ fontSize: 12.5 }}>
+      <span className="muted" style={{ width: 78, flex: '0 0 auto' }}>
+        {name}
+      </span>
+      <div className="track" style={{ flex: 1 }}>
+        <i style={{ width: `${score.score}%`, background: color }} />
       </div>
-      <span className="w-6 text-right font-semibold tabular-nums text-slate-600">
+      <span className="tabnum" style={{ width: 24, textAlign: 'right', color: 'var(--ink-2)', fontWeight: 600 }}>
         {score.score}
       </span>
     </div>
   );
 }
 
-function HistoryTab({ records }: { records: RecordMap }) {
-  const streak = currentStreak(records);
+/* ───────────────────────── History ───────────────────────── */
+function HistoryView({ records, streak }: { records: RecordMap; streak: number }) {
   const total = totalCheckins(records);
   const avg = averageScore(records);
+  const sorted = useMemo(
+    () => Object.values(records).sort((a, b) => a.date.localeCompare(b.date)),
+    [records],
+  );
+  const series = (key: StationKey) =>
+    sorted.map((r) => r.stations[key]?.score).filter((n): n is number => n != null);
 
   return (
     <div className="space-y-4">
@@ -183,25 +265,54 @@ function HistoryTab({ records }: { records: RecordMap }) {
         <Stat label="Avg score" value={total ? `${avg}` : '—'} suffix="/ 100" />
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">
-          Last 13 weeks
-        </h2>
+      <div className="card">
+        <p className="eyebrow">Last year</p>
         {total === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="muted mt-2" style={{ fontSize: 14 }}>
             No check-ins yet — your grid fills in as you go.
           </p>
         ) : (
-          <Heatmap records={records} />
+          <div className="mt-3 space-y-3">
+            <ActivityGrid records={records} />
+            <GridLegend />
+          </div>
         )}
       </div>
 
-      <DataCard />
+      {total >= 2 && (
+        <div className="card">
+          <p className="eyebrow">Trends</p>
+          <div className="mt-3 space-y-3">
+            <TrendRow label="Eye check" data={series('face')} color="var(--sage)" />
+            <TrendRow label="Voice" data={series('voice')} color="var(--saffron)" />
+            <TrendRow label="Reaction" data={series('reaction')} color="var(--sage)" />
+          </div>
+        </div>
+      )}
+
+      <ExportCard />
     </div>
   );
 }
 
-function DataCard() {
+function TrendRow({ label, data, color }: { label: string; data: number[]; color: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="muted" style={{ fontSize: 13 }}>
+        {label}
+      </span>
+      {data.length >= 2 ? (
+        <Sparkline data={data} color={color} />
+      ) : (
+        <span className="muted" style={{ fontSize: 12 }}>
+          not enough data
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ExportCard() {
   const [msg, setMsg] = useState('');
   const [patientName, setPatientName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -212,29 +323,35 @@ function DataCard() {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-slate-700">Data & reminders</h2>
-      <p className="mt-1 text-xs leading-relaxed text-slate-500">
-        NHS-style monitoring record for your GP — monthly summary, flagged months, and daily readings.
+    <div className="card">
+      <p className="eyebrow">For your GP</p>
+      <p className="muted mt-1" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+        A monitoring record — monthly summary, flagged months, and daily readings.
       </p>
       <label className="mt-3 block">
-        <span className="text-xs font-medium text-slate-600">Patient name</span>
+        <span className="muted" style={{ fontSize: 12.5, fontWeight: 600 }}>
+          Patient name
+        </span>
         <input
+          className="input mt-1"
+          style={{ fontSize: 15 }}
           type="text"
           value={patientName}
           onChange={(e) => setPatientName(e.target.value)}
-          placeholder="As on your NHS record"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800"
+          placeholder="As on your record"
         />
       </label>
       <label className="mt-2 block">
-        <span className="text-xs font-medium text-slate-600">Date of birth (optional)</span>
+        <span className="muted" style={{ fontSize: 12.5, fontWeight: 600 }}>
+          Date of birth (optional)
+        </span>
         <input
+          className="input mt-1"
+          style={{ fontSize: 15 }}
           type="text"
           value={dateOfBirth}
           onChange={(e) => setDateOfBirth(e.target.value)}
           placeholder="DD/MM/YYYY"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800"
         />
       </label>
       <div className="mt-3 grid gap-2">
@@ -255,17 +372,12 @@ function DataCard() {
               setExporting(false);
             }
           }}
-          className="rounded-lg bg-teal-700 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+          className="btn btn-primary"
+          style={{ fontSize: 15 }}
         >
           {exporting ? 'Preparing report…' : 'Export for GP appointment (PDF)'}
         </button>
-        <button
-          onClick={async () => {
-            await exportJson();
-            flash('JSON export started.');
-          }}
-          className="rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-        >
+        <button onClick={async () => { await exportJson(); flash('JSON export started.'); }} className="btn btn-quiet">
           Export raw data (JSON)
         </button>
         <button
@@ -273,7 +385,7 @@ function DataCard() {
             chrome.runtime.sendMessage({ type: 'baseline:test-reminder' });
             flash('Test reminder sent.');
           }}
-          className="rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          className="btn btn-quiet"
         >
           Test reminder
         </button>
@@ -282,49 +394,40 @@ function DataCard() {
             await seedDemoData();
             flash('Demo history added.');
           }}
-          className="rounded-lg border border-dashed border-slate-300 bg-white py-2 text-xs font-medium text-slate-400 hover:bg-slate-50"
+          className="btn btn-quiet"
+          style={{ fontSize: 12.5, color: 'var(--ink-3)', borderStyle: 'dashed' }}
         >
           Seed demo data (dev)
         </button>
       </div>
-      {msg && <p className="mt-2 text-center text-xs text-emerald-600">{msg}</p>}
-      <p className="mt-2 text-center text-[10px] text-slate-400">
+      {msg && (
+        <p className="mt-2 text-center" style={{ fontSize: 12, color: 'var(--sage-deep)' }}>
+          {msg}
+        </p>
+      )}
+      <p className="muted mt-2 text-center" style={{ fontSize: 10.5 }}>
         Daily reminder at 9:00 AM · all data stays on this device.
       </p>
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  suffix,
-}: {
-  label: string;
-  value: string;
-  suffix: string;
-}) {
+function Stat({ label, value, suffix }: { label: string; value: string; suffix: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm">
-      <div className="text-2xl font-bold text-teal-700">{value}</div>
-      <div className="text-[11px] text-slate-400">{label}</div>
-      <div className="text-[10px] text-slate-300">{suffix}</div>
+    <div className="card" style={{ padding: 12, textAlign: 'center' }}>
+      <div className="tabnum serif-h" style={{ fontSize: 24, color: 'var(--ginseng)' }}>
+        {value}
+      </div>
+      <div className="muted" style={{ fontSize: 11 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--ink-4)' }}>{suffix}</div>
     </div>
   );
 }
 
-function ScoreRing({ score }: { score: number }) {
-  return (
-    <div
-      className="grid h-16 w-16 shrink-0 place-items-center rounded-full text-lg font-bold text-white"
-      style={{ backgroundColor: scoreColor(score) }}
-    >
-      {score}
-    </div>
-  );
-}
-
-function scoreColor(score: number): string {
-  const hue = Math.round((score / 100) * 130); // 0 = red, 130 = green
-  return `hsl(${hue}, 65%, 45%)`;
+function latestRecord(records: RecordMap): DayRecord | undefined {
+  const keys = Object.keys(records).sort();
+  const k = keys[keys.length - 1];
+  return k ? records[k] : undefined;
 }

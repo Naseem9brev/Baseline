@@ -308,13 +308,13 @@ export default function EyeStation({
       setAttempt((a) => a + 1);
     };
     return (
-      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-        <p className="text-sm font-medium text-amber-800">{heading}</p>
-        <p className="text-xs text-amber-700">{message}</p>
+      <div className="space-y-3 rounded-xl border border-[var(--ginseng-soft)] bg-[var(--monitor-soft)] p-4 text-center">
+        <p className="text-sm font-medium text-[#6F4A21]">{heading}</p>
+        <p className="text-xs text-[var(--ink-2)]">{message}</p>
         {needsPerm && (
           <button
             onClick={openExtensionCameraSettings}
-            className="w-full rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+            className="w-full rounded-lg bg-[var(--ginseng)] py-2 text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)]"
           >
             Open camera settings
           </button>
@@ -325,15 +325,15 @@ export default function EyeStation({
             className={
               'flex-1 rounded-lg py-2 text-sm font-semibold ' +
               (needsPerm
-                ? 'border border-teal-300 bg-white text-teal-800 hover:bg-teal-50'
-                : 'bg-teal-600 text-white hover:bg-teal-700')
+                ? 'border border-[var(--ginseng-soft)] bg-white text-[var(--ginseng-deep)] hover:bg-[var(--ginseng-wash)]'
+                : 'bg-[var(--ginseng)] text-white hover:bg-[var(--ginseng-deep)]')
             }
           >
             Try again
           </button>
           <button
             onClick={() => onError('error')}
-            className="flex-1 rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="flex-1 rounded-lg border border-[var(--ink-4)] bg-white py-2 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--paper-2)]"
           >
             Skip
           </button>
@@ -360,7 +360,7 @@ export default function EyeStation({
 
   if (phase === 'analyzing') {
     return (
-      <div className="grid place-items-center gap-3 rounded-xl bg-slate-900 py-14 text-center">
+      <div className="grid place-items-center gap-3 rounded-xl bg-[#2B2722] py-14 text-center">
         <Spinner />
         <p className="text-sm text-white">Analyzing heart rate…</p>
         <p className="text-[11px] text-white/60">
@@ -372,7 +372,7 @@ export default function EyeStation({
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-900">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#2B2722]">
         <video
           ref={videoRef}
           playsInline
@@ -384,7 +384,7 @@ export default function EyeStation({
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
         {phase === 'init' && (
-          <div className="absolute inset-0 grid place-items-center bg-slate-900/80 text-center text-sm text-white">
+          <div className="absolute inset-0 grid place-items-center bg-[#2B2722]/80 text-center text-sm text-white">
             <div>
               <Spinner />
               <p className="mt-2">Starting camera + model…</p>
@@ -397,17 +397,17 @@ export default function EyeStation({
           </div>
         )}
       </div>
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-[var(--ink-2)]">
         {phase === 'init'
           ? 'Allow camera access to begin.'
           : 'Hold still, face steady light, look at the camera…'}
       </p>
-      <p className="text-center text-[11px] text-slate-400">
+      <p className="text-center text-[11px] text-[var(--ink-3)]">
         Reading your heart rate from your face via VitalLens. Nothing is recorded.
       </p>
       <button
         onClick={onSkip}
-        className="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-400 hover:bg-slate-50"
+        className="w-full rounded-lg border border-[var(--line)] bg-white py-2 text-xs font-medium text-[var(--ink-3)] hover:bg-[var(--paper-2)]"
       >
         Skip eye check
       </button>
@@ -428,24 +428,24 @@ function ResultCard({
 }) {
   if (c.status === 'retry') {
     return (
-      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-        <p className="text-sm font-medium text-amber-800">
+      <div className="space-y-3 rounded-xl border border-[var(--ginseng-soft)] bg-[var(--monitor-soft)] p-4 text-center">
+        <p className="text-sm font-medium text-[#6F4A21]">
           Couldn’t get a clean read.
         </p>
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-[var(--ink-2)]">
           Sit still, face steady overhead light, and avoid moving for the count.
         </p>
         <DebugLine d={c.debug} />
         <div className="flex gap-2">
           <button
             onClick={onRetry}
-            className="flex-1 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+            className="flex-1 rounded-lg bg-[var(--ginseng)] py-2 text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)]"
           >
             Try again
           </button>
           <button
             onClick={onSkip}
-            className="flex-1 rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="flex-1 rounded-lg border border-[var(--ink-4)] bg-white py-2 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--paper-2)]"
           >
             Skip
           </button>
@@ -457,27 +457,27 @@ function ResultCard({
   const { result, band } = c;
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
-        <p className="text-xs uppercase tracking-wide text-slate-400">
+      <div className="rounded-xl border border-[var(--line)] bg-white p-4 text-center shadow-sm">
+        <p className="text-xs uppercase tracking-wide text-[var(--ink-3)]">
           Heart rate {c.status === 'low' && '· low confidence'}
         </p>
-        <p className="mt-1 text-3xl font-bold text-teal-700">
+        <p className="mt-1 text-3xl font-bold text-[var(--ginseng-deep)]">
           ≈{result.heartRateBpm}
-          <span className="text-base font-medium text-slate-400">
+          <span className="text-base font-medium text-[var(--ink-3)]">
             {' '}
             ±{band} bpm
           </span>
         </p>
-        <p className="text-[11px] text-slate-400">
+        <p className="text-[11px] text-[var(--ink-3)]">
           estimate · via VitalLens (cloud)
         </p>
 
-        <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
+        <div className="mt-3 border-t border-[var(--paper-sunk)] pt-3 text-sm text-[var(--ink-2)]">
           Blink rate <span className="font-semibold">{result.blinkRate}</span>/min
         </div>
       </div>
 
-      <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-400">
+      <p className="rounded-lg bg-[var(--paper-2)] px-3 py-2 text-[11px] leading-relaxed text-[var(--ink-3)]">
         Estimated from facial colour — not medical-grade. One reading isn’t a
         baseline; lighting, movement, caffeine and more affect it. If you feel
         unwell, trust your symptoms over this number.
@@ -486,13 +486,13 @@ function ResultCard({
       <div className="flex gap-2">
         <button
           onClick={onSave}
-          className="flex-1 rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
+          className="flex-1 rounded-xl bg-[var(--ginseng)] py-2.5 text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)]"
         >
           Save & continue
         </button>
         <button
           onClick={onRetry}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          className="rounded-xl border border-[var(--ink-4)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--paper-2)]"
         >
           Retry
         </button>
@@ -510,7 +510,7 @@ function Spinner() {
 /** On-screen diagnostics so issues are visible without DevTools. */
 function DebugLine({ d }: { d: Computed['debug'] }) {
   return (
-    <p className="font-mono text-[10px] text-slate-400">
+    <p className="font-mono text-[10px] text-[var(--ink-3)]">
       diag · {d.elapsedSec}s · faceFrames {d.faceFrames} · vlFrames {d.vlFrames} ·
       track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
     </p>

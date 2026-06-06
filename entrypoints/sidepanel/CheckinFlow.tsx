@@ -90,7 +90,7 @@ export default function CheckinFlow({
           onContinue={advance}
         />
       ) : saving ? (
-        <p className="py-8 text-center text-sm text-slate-500">
+        <p className="py-8 text-center text-sm text-[var(--ink-2)]">
           Saving your baseline…
         </p>
       ) : stepError ? (
@@ -161,8 +161,8 @@ function StepErrorCard({
   const isCameraDenied = kind === 'denied' && step === 'face';
 
   return (
-    <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-      <p className="text-sm text-amber-800">
+    <div className="space-y-3 rounded-xl border border-[var(--ginseng-soft)] bg-[var(--monitor-soft)] p-4 text-center">
+      <p className="text-sm text-[#6F4A21]">
         {isVoiceMic
           ? MIC_PERMISSION_COPY.sidePanelNote
           : isCameraDenied
@@ -176,14 +176,14 @@ function StepErrorCard({
           <button
             type="button"
             onClick={() => void openMicPermissionTab().then(() => onRetry())}
-            className="min-h-11 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+            className="min-h-11 rounded-lg bg-[var(--ginseng)] py-2 text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)]"
           >
             Allow microphone (opens tab)
           </button>
           <button
             type="button"
             onClick={openExtensionMicSettings}
-            className="min-h-11 rounded-lg border border-teal-300 bg-white py-2 text-sm font-medium text-teal-800 hover:bg-teal-50"
+            className="min-h-11 rounded-lg border border-[var(--ginseng-soft)] bg-white py-2 text-sm font-medium text-[var(--ginseng-deep)] hover:bg-[var(--ginseng-wash)]"
           >
             Open extension microphone settings
           </button>
@@ -193,14 +193,14 @@ function StepErrorCard({
           <button
             type="button"
             onClick={() => void openCameraPermissionTab().then(() => onRetry())}
-            className="min-h-11 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+            className="min-h-11 rounded-lg bg-[var(--ginseng)] py-2 text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)]"
           >
             Allow camera (opens tab)
           </button>
           <button
             type="button"
             onClick={openExtensionCameraSettings}
-            className="min-h-11 rounded-lg border border-teal-300 bg-white py-2 text-sm font-medium text-teal-800 hover:bg-teal-50"
+            className="min-h-11 rounded-lg border border-[var(--ginseng-soft)] bg-white py-2 text-sm font-medium text-[var(--ginseng-deep)] hover:bg-[var(--ginseng-wash)]"
           >
             Open extension camera settings
           </button>
@@ -209,13 +209,13 @@ function StepErrorCard({
       <div className="flex gap-2">
         <button
           onClick={onRetry}
-          className="flex-1 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          className="flex-1 rounded-lg bg-[var(--ginseng)] py-2 text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)]"
         >
           Try again
         </button>
         <button
           onClick={onSkip}
-          className="flex-1 rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          className="flex-1 rounded-lg border border-[var(--ink-4)] bg-white py-2 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--paper-2)]"
         >
           Skip this step
         </button>
@@ -233,16 +233,16 @@ function StepHeader({ idx }: { idx: number }) {
             className={
               'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ' +
               (i === idx
-                ? 'bg-teal-600 text-white'
+                ? 'bg-[var(--ginseng)] text-white'
                 : i < idx
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-slate-100 text-slate-400')
+                  ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]'
+                  : 'bg-[var(--paper-sunk)] text-[var(--ink-3)]')
             }
           >
             <span>{i < idx ? '✓' : i + 1}</span>
             <span>{s.label}</span>
           </div>
-          {i < STEPS.length - 1 && <span className="text-slate-300">›</span>}
+          {i < STEPS.length - 1 && <span className="text-[var(--ink-4)]">›</span>}
         </div>
       ))}
     </div>

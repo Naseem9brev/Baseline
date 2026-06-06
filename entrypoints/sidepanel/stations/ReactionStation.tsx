@@ -32,24 +32,24 @@ const DIFFICULTY_CONFIG: Record<
 
 const PAD_FREQS = [262, 294, 330, 392, 440, 494, 523, 587, 659];
 const PAD_COLORS = [
-  'bg-emerald-500',
-  'bg-sky-500',
-  'bg-amber-400',
-  'bg-rose-500',
+  'bg-[var(--sage)]',
+  'bg-[var(--sage)]',
+  'bg-[var(--saffron)]',
+  'bg-[var(--jujube)]',
   'bg-violet-500',
   'bg-orange-400',
-  'bg-teal-500',
+  'bg-[var(--ginseng)]',
   'bg-pink-500',
   'bg-lime-500',
 ];
 const PAD_LIT = [
-  'bg-emerald-300',
-  'bg-sky-300',
-  'bg-amber-200',
-  'bg-rose-300',
+  'bg-[var(--sage)]',
+  'bg-[var(--sage-soft)]',
+  'bg-[var(--ginseng-soft)]',
+  'bg-[var(--jujube-soft)]',
   'bg-violet-300',
   'bg-orange-200',
-  'bg-teal-300',
+  'bg-[var(--ginseng-soft)]',
   'bg-pink-300',
   'bg-lime-300',
 ];
@@ -122,17 +122,17 @@ function SubProgress({ idx }: { idx: number }) {
             className={
               'flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ' +
               (i === idx
-                ? 'bg-teal-600 text-white'
+                ? 'bg-[var(--ginseng)] text-white'
                 : i < idx
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-slate-100 text-slate-400')
+                  ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]'
+                  : 'bg-[var(--paper-sunk)] text-[var(--ink-3)]')
             }
           >
             <span>{i < idx ? '✓' : i + 1}</span>
             <span>{s.label}</span>
           </div>
           {i < SUB_STEPS.length - 1 && (
-            <span className="text-slate-300 text-xs">›</span>
+            <span className="text-[var(--ink-4)] text-xs">›</span>
           )}
         </div>
       ))}
@@ -217,10 +217,10 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
 
   const bg =
     state === 'ready'
-      ? 'bg-emerald-500'
+      ? 'bg-[var(--sage)]'
       : state === 'tooEarly'
-        ? 'bg-rose-500'
-        : 'bg-slate-700';
+        ? 'bg-[var(--jujube)]'
+        : 'bg-[var(--ink)]';
   const label =
     state === 'ready'
       ? 'TAP!'
@@ -230,7 +230,7 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-[var(--ink-2)]">
         Reaction test · trial {Math.min(trial + 1, TAP_TRIALS)} of {TAP_TRIALS}
       </p>
       <button
@@ -239,7 +239,7 @@ function ReactionTest({ onDone }: { onDone: (avgMs: number) => void }) {
       >
         {label}
       </button>
-      <p className="text-center text-[11px] text-slate-400">
+      <p className="text-center text-[11px] text-[var(--ink-3)]">
         Tap the box the instant it turns green.
       </p>
     </div>
@@ -322,14 +322,14 @@ function ChoiceReactionTest({
 
   const promptBg =
     state === 'ready'
-      ? 'bg-slate-800 text-white'
+      ? 'bg-[#34302B] text-white'
       : state === 'tooEarly' || state === 'wrong'
-        ? 'bg-rose-500 text-white'
-        : 'bg-slate-200 text-slate-500';
+        ? 'bg-[var(--jujube)] text-white'
+        : 'bg-[var(--line)] text-[var(--ink-2)]';
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-[var(--ink-2)]">
         Arrow test · trial {Math.min(trial + 1, CHOICE_TRIALS)} of {CHOICE_TRIALS}
       </p>
       <div
@@ -341,18 +341,18 @@ function ChoiceReactionTest({
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => handleChoice('left')}
-          className="rounded-xl bg-slate-700 py-4 text-lg font-bold text-white hover:bg-slate-800"
+          className="rounded-xl bg-[var(--ink)] py-4 text-lg font-bold text-white hover:bg-[#34302B]"
         >
           ← Left
         </button>
         <button
           onClick={() => handleChoice('right')}
-          className="rounded-xl bg-slate-700 py-4 text-lg font-bold text-white hover:bg-slate-800"
+          className="rounded-xl bg-[var(--ink)] py-4 text-lg font-bold text-white hover:bg-[#34302B]"
         >
           Right →
         </button>
       </div>
-      <p className="text-center text-[11px] text-slate-400">
+      <p className="text-center text-[11px] text-[var(--ink-3)]">
         Tap the matching side as soon as the arrow appears.
       </p>
     </div>
@@ -468,8 +468,8 @@ function MemorySequenceTest({
   if (phase === 'pick' || !config) {
     return (
       <div className="space-y-3">
-        <p className="text-center text-sm text-slate-600">Memory sequence</p>
-        <p className="text-center text-[11px] text-slate-400">
+        <p className="text-center text-sm text-[var(--ink-2)]">Memory sequence</p>
+        <p className="text-center text-[11px] text-[var(--ink-3)]">
           Watch the pattern, then repeat it. One mistake ends the round.
         </p>
         <div className="grid gap-2">
@@ -477,12 +477,12 @@ function MemorySequenceTest({
             <button
               key={d}
               onClick={() => startGame(d)}
-              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm hover:border-teal-300 hover:bg-teal-50"
+              className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left shadow-sm hover:border-[var(--ginseng-soft)] hover:bg-[var(--ginseng-wash)]"
             >
-              <span className="text-sm font-semibold text-slate-700">
+              <span className="text-sm font-semibold text-[var(--ink)]">
                 {DIFFICULTY_CONFIG[d].label}
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-[var(--ink-2)]">
                 {DIFFICULTY_CONFIG[d].hint}
               </span>
             </button>
@@ -505,10 +505,10 @@ function MemorySequenceTest({
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-[var(--ink-2)]">
         {config.label} · {config.hint}
       </p>
-      <p className="text-center text-xs font-medium text-teal-700" aria-live="polite">
+      <p className="text-center text-xs font-medium text-[var(--ginseng-deep)]" aria-live="polite">
         {status}
       </p>
       <div
@@ -531,7 +531,7 @@ function MemorySequenceTest({
           />
         ))}
       </div>
-      <p className="text-center text-[11px] text-slate-400">
+      <p className="text-center text-[11px] text-[var(--ink-3)]">
         Each square plays a tone. The pattern grows longer every round.
       </p>
     </div>
@@ -564,8 +564,8 @@ function TypingTest({
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-slate-600">Type this phrase:</p>
-      <div className="rounded-xl border border-slate-200 bg-white p-3 text-center text-lg font-medium tracking-wide text-slate-700 shadow-sm">
+      <p className="text-center text-sm text-[var(--ink-2)]">Type this phrase:</p>
+      <div className="rounded-xl border border-[var(--line)] bg-white p-3 text-center text-lg font-medium tracking-wide text-[var(--ink)] shadow-sm">
         {PHRASE}
       </div>
       <input
@@ -574,12 +574,12 @@ function TypingTest({
         onChange={handleChange}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         placeholder="Start typing…"
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+        className="w-full rounded-lg border border-[var(--ink-4)] px-3 py-2 text-sm focus:border-[var(--ginseng)] focus:outline-none focus:ring-1 focus:ring-[var(--ginseng)]"
       />
       <button
         onClick={submit}
         disabled={value.length === 0}
-        className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+        className="w-full rounded-xl bg-[var(--ginseng)] py-2.5 text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)] disabled:opacity-60"
       >
         Done
       </button>

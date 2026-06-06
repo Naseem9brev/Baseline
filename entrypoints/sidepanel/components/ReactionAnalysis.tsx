@@ -62,13 +62,13 @@ export default function ReactionAnalysis({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-700">Reaction — your results</h2>
+      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[var(--ink)]">Reaction — your results</h2>
         <div className="mt-3 flex items-center gap-4">
           <ScoreRing score={score.score} />
           <div className="flex-1 space-y-1">
-            <p className="text-sm text-slate-600">{score.note}</p>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-sm text-[var(--ink-2)]">{score.note}</p>
+            <p className="text-[11px] text-[var(--ink-3)]">
               Combined score from all four mini-tests below.
             </p>
           </div>
@@ -102,25 +102,25 @@ export default function ReactionAnalysis({
         />
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-2)] p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">
           Today&apos;s check-in review
         </p>
         <div className="mt-2 space-y-3">
           {sessionSummary.split(/\n\n+/).map((paragraph, i) => (
-            <p key={i} className="text-sm leading-relaxed text-slate-700">
+            <p key={i} className="text-sm leading-relaxed text-[var(--ink)]">
               {paragraph}
             </p>
           ))}
         </div>
         {aiEnhancing ? (
-          <p className="mt-3 text-xs text-slate-500">Writing your review…</p>
+          <p className="mt-3 text-xs text-[var(--ink-2)]">Writing your review…</p>
         ) : usedAi ? (
-          <p className="mt-3 text-[10px] text-slate-400">
+          <p className="mt-3 text-[10px] text-[var(--ink-3)]">
             Review by {aiProvider ?? 'AI'} · only your scores were sent
           </p>
         ) : (
-          <p className="mt-3 text-[10px] text-slate-400">
+          <p className="mt-3 text-[10px] text-[var(--ink-3)]">
             Add a Z.AI or Gemini API key in Settings for an AI-written review (optional)
           </p>
         )}
@@ -129,11 +129,11 @@ export default function ReactionAnalysis({
       <button
         onClick={() => onContinue(sessionSummary)}
         disabled={aiEnhancing}
-        className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl bg-[var(--ginseng)] py-3 text-sm font-semibold text-white shadow-sm hover:bg-[var(--ginseng-deep)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         Save check-in
       </button>
-      <p className="text-center text-[10px] text-slate-400">
+      <p className="text-center text-[10px] text-[var(--ink-3)]">
         Provisional scores for trend tracking — not medical advice.
       </p>
     </div>
@@ -152,12 +152,12 @@ function MetricCard({
   insight: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="rounded-xl border border-[var(--line)] bg-white p-3 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-slate-700">{label}</span>
-        <span className="text-xs font-bold tabular-nums text-slate-600">{score}</span>
+        <span className="text-xs font-semibold text-[var(--ink)]">{label}</span>
+        <span className="text-xs font-bold tabular-nums text-[var(--ink-2)]">{score}</span>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--paper-sunk)]">
         <div
           className="h-full rounded-full transition-all"
           style={{
@@ -166,8 +166,8 @@ function MetricCard({
           }}
         />
       </div>
-      <p className="mt-2 text-xs text-slate-500">{detail}</p>
-      <p className="mt-0.5 text-[11px] text-slate-400">{insight}</p>
+      <p className="mt-2 text-xs text-[var(--ink-2)]">{detail}</p>
+      <p className="mt-0.5 text-[11px] text-[var(--ink-3)]">{insight}</p>
     </div>
   );
 }
@@ -212,6 +212,8 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 function scoreColor(score: number): string {
-  const hue = Math.round((score / 100) * 130);
-  return `hsl(${hue}, 65%, 45%)`;
+  // Herb status tokens (sage / amber / jujube) — no rainbow HSL ramp.
+  if (score >= 70) return 'var(--sage)';
+  if (score >= 45) return 'var(--saffron)';
+  return 'var(--jujube)';
 }

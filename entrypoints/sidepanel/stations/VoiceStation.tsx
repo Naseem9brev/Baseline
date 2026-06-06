@@ -400,19 +400,19 @@ export default function VoiceStation({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-xs uppercase tracking-wide text-slate-400">Voice check</p>
-        <p className="mt-2 text-lg leading-relaxed text-slate-700">{INSTRUCTION}</p>
-        <p className="mt-3 text-sm text-slate-500">
+      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
+        <p className="text-xs uppercase tracking-wide text-[var(--ink-3)]">Voice check</p>
+        <p className="mt-2 text-lg leading-relaxed text-[var(--ink)]">{INSTRUCTION}</p>
+        <p className="mt-3 text-sm text-[var(--ink-2)]">
           Press the button to start, say “ahhhh”, then press again to stop. Or hold{' '}
-          <kbd className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 font-mono text-xs">
+          <kbd className="rounded border border-[var(--ink-4)] bg-[var(--paper-sunk)] px-1.5 py-0.5 font-mono text-xs">
             Space
           </kbd>{' '}
           while you speak, then release.
         </p>
       </div>
 
-      <div className="grid place-items-center gap-4 rounded-xl bg-slate-900 p-6">
+      <div className="grid place-items-center gap-4 rounded-xl bg-[#2B2722] p-6">
         <MicMeter level={level} active={recording} />
 
         <p className="text-center text-sm text-white">
@@ -459,8 +459,8 @@ export default function VoiceStation({
           className={
             'min-h-12 min-w-[12rem] rounded-xl px-6 text-base font-semibold transition-colors ' +
             (recording
-              ? 'bg-rose-500 text-white hover:bg-rose-600'
-              : 'bg-teal-500 text-white hover:bg-teal-600') +
+              ? 'bg-[var(--jujube)] text-white hover:bg-[var(--jujube)]'
+              : 'bg-[var(--ginseng)] text-white hover:bg-[var(--ginseng)]') +
             (phase === 'processing' || !canRecord ? ' cursor-not-allowed opacity-60' : '')
           }
         >
@@ -473,20 +473,20 @@ export default function VoiceStation({
       </div>
 
       {needsMicAccess ? (
-        <div className="space-y-2 rounded-lg border border-teal-200 bg-teal-50 p-3">
-          <p className="text-sm text-teal-900">{MIC_PERMISSION_COPY.sidePanelNote}</p>
+        <div className="space-y-2 rounded-lg border border-[var(--ginseng-soft)] bg-[var(--ginseng-wash)] p-3">
+          <p className="text-sm text-[var(--ginseng-deep)]">{MIC_PERMISSION_COPY.sidePanelNote}</p>
           <button
             type="button"
             disabled={micBusy}
             onClick={() => void grantMicrophoneAccess().then((ok) => ok && void startRecording())}
-            className="min-h-11 w-full rounded-lg bg-teal-600 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+            className="min-h-11 w-full rounded-lg bg-[var(--ginseng)] text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)] disabled:opacity-60"
           >
             {micBusy ? 'Waiting for Chrome…' : 'Allow microphone (opens tab)'}
           </button>
           <button
             type="button"
             onClick={openExtensionMicSettings}
-            className="min-h-11 w-full rounded-lg border border-teal-300 bg-white text-sm font-medium text-teal-800 hover:bg-teal-50"
+            className="min-h-11 w-full rounded-lg border border-[var(--ginseng-soft)] bg-white text-sm font-medium text-[var(--ginseng-deep)] hover:bg-[var(--ginseng-wash)]"
           >
             Open extension microphone settings
           </button>
@@ -494,7 +494,7 @@ export default function VoiceStation({
       ) : null}
 
       {hint && !needsMicAccess ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="rounded-lg border border-[var(--ginseng-soft)] bg-[var(--monitor-soft)] px-3 py-2 text-sm text-[#6F4A21]">
           {hint}
         </p>
       ) : null}

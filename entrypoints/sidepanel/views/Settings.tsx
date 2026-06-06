@@ -96,8 +96,8 @@ export default function SettingsView() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-3)]">
           Settings
         </p>
 
@@ -106,7 +106,7 @@ export default function SettingsView() {
             <div key={key}>
               <label
                 htmlFor={key}
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-medium text-[var(--ink)]"
               >
                 {label}
               </label>
@@ -119,19 +119,19 @@ export default function SettingsView() {
                 placeholder={placeholder}
                 onChange={(e) => void updateField(key, e.target.value)}
                 onBlur={() => void persist()}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 outline-none ring-teal-500/30 placeholder:text-slate-400 focus:border-teal-500 focus:ring-2"
+                className="mt-1.5 w-full rounded-lg border border-[var(--ink-4)] bg-[var(--paper-2)] px-3 py-2.5 text-sm text-[#34302B] outline-none ring-[var(--ginseng)]/30 placeholder:text-[var(--ink-3)] focus:border-[var(--ginseng)] focus:ring-2"
               />
               {link ? (
                 <a
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1.5 inline-block text-xs font-medium text-teal-600 hover:text-teal-700"
+                  className="mt-1.5 inline-block text-xs font-medium text-[var(--ginseng)] hover:text-[var(--ginseng-deep)]"
                 >
                   {link.text}
                 </a>
               ) : null}
-              {hint ? <p className="mt-1 text-[11px] leading-relaxed text-slate-500">{hint}</p> : null}
+              {hint ? <p className="mt-1 text-[11px] leading-relaxed text-[var(--ink-2)]">{hint}</p> : null}
             </div>
           ))}
         </div>
@@ -139,20 +139,20 @@ export default function SettingsView() {
         <button
           type="button"
           onClick={() => void persist()}
-          className="mt-6 min-h-12 w-full rounded-xl bg-teal-600 text-sm font-semibold text-white hover:bg-teal-700"
+          className="mt-6 min-h-12 w-full rounded-xl bg-[var(--ginseng)] text-sm font-semibold text-white hover:bg-[var(--ginseng-deep)]"
         >
           Save settings
         </button>
 
         {saved ? (
-          <p className="mt-2 text-center text-xs text-emerald-600">Settings saved.</p>
+          <p className="mt-2 text-center text-xs text-[var(--sage-deep)]">Settings saved.</p>
         ) : null}
 
         <button
           type="button"
           disabled={ttsTest === 'testing' || !settings.elevenLabsApiKey.trim()}
           onClick={() => void testReadAloud()}
-          className="mt-4 min-h-11 w-full rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="mt-4 min-h-11 w-full rounded-lg border border-[var(--ink-4)] bg-white text-sm font-medium text-[var(--ink)] hover:bg-[var(--paper-2)] disabled:opacity-50"
         >
           {ttsTest === 'testing' ? 'Testing ElevenLabs…' : 'Test ElevenLabs connection'}
         </button>
@@ -160,7 +160,7 @@ export default function SettingsView() {
           <p
             className={
               'mt-2 text-center text-xs ' +
-              (ttsTest === 'ok' ? 'text-emerald-600' : 'text-amber-700')
+              (ttsTest === 'ok' ? 'text-[var(--sage-deep)]' : 'text-[var(--ink-2)]')
             }
           >
             {ttsTestMessage}
@@ -168,15 +168,15 @@ export default function SettingsView() {
         ) : null}
       </div>
 
-      <p className="text-center text-[11px] leading-relaxed text-slate-400">
+      <p className="text-center text-[11px] leading-relaxed text-[var(--ink-3)]">
         API keys are stored only on this device in Chrome local storage. Voice analysis
         (jitter, shimmer, HNR) always runs locally with praatfan — no key required.
         Add Z.AI or Gemini for AI-written summaries.
       </p>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-sm font-semibold text-slate-700">Try voice test</p>
-        <p className="mt-1 text-xs text-slate-500">
+      <div className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-sm">
+        <p className="text-sm font-semibold text-[var(--ink)]">Try voice test</p>
+        <p className="mt-1 text-xs text-[var(--ink-2)]">
           Run the sustained “ahhhh” check without starting a full check-in.
         </p>
         {!voiceTestOpen ? (
@@ -186,7 +186,7 @@ export default function SettingsView() {
               setVoiceTestOpen(true);
               setVoiceTestKey((k) => k + 1);
             }}
-            className="mt-3 min-h-11 w-full rounded-lg border border-teal-200 bg-teal-50 text-sm font-semibold text-teal-800 hover:bg-teal-100"
+            className="mt-3 min-h-11 w-full rounded-lg border border-[var(--ginseng-soft)] bg-[var(--ginseng-wash)] text-sm font-semibold text-[var(--ginseng-deep)] hover:bg-[var(--ginseng-wash)]"
           >
             Open voice test
           </button>
@@ -200,7 +200,7 @@ export default function SettingsView() {
             <button
               type="button"
               onClick={() => setVoiceTestOpen(false)}
-              className="w-full rounded-lg border border-slate-300 py-2 text-sm text-slate-600 hover:bg-slate-50"
+              className="w-full rounded-lg border border-[var(--ink-4)] py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--paper-2)]"
             >
               Close
             </button>
