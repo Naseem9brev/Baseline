@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getFaceLandmarker } from '@/lib/mediapipe';
+import { ensureCameraPermission } from '@/lib/cameraPermission';
 import {
   blinkRate,
   countBlinks,
@@ -61,6 +62,14 @@ export default function EyeStation({
     let faceFrames = 0;
 
     async function run() {
+      // Side panels can't show the camera prompt — grant once via a helper tab if needed.
+      const permitted = await ensureCameraPermission();
+      if (cancelled) return;
+      if (!permitted) {
+        onError('denied');
+        return;
+      }
+
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user', width: 640, height: 480 },
