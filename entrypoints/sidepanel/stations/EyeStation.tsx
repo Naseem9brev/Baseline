@@ -42,9 +42,11 @@ interface Computed {
 export default function EyeStation({
   onComplete,
   onError,
+  onSkip,
 }: {
   onComplete: (r: EyeResult) => void;
   onError: (kind: 'denied' | 'error') => void;
+  onSkip: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -244,7 +246,7 @@ export default function EyeStation({
           setAttempt((a) => a + 1);
         }}
         onSave={() => onComplete(computed.result)}
-        onSkip={() => onError('error')}
+        onSkip={onSkip}
       />
     );
   }
@@ -284,6 +286,13 @@ export default function EyeStation({
       <p className="text-center text-[11px] text-slate-400">
         Reading heart rate from facial colour + blink rate. Nothing is recorded.
       </p>
+      <button
+        type="button"
+        onClick={onSkip}
+        className="min-h-11 w-full rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+      >
+        Skip this step
+      </button>
     </div>
   );
 }
@@ -320,7 +329,7 @@ function ResultCard({
             onClick={onSkip}
             className="flex-1 rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
-            Skip
+            Skip this step
           </button>
         </div>
       </div>

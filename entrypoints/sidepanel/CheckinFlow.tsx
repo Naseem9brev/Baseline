@@ -117,6 +117,7 @@ export default function CheckinFlow({
             advance();
           }}
           onError={setStepError}
+          onSkip={advance}
         />
       ) : step === 'voice' ? (
         <VoiceStation
