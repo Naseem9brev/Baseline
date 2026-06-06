@@ -30,7 +30,6 @@ const MIN_VALID_MS = 6_000;
 const MIN_FACE_FRAMES = 60; // ~face present for the bulk of the capture
 const CONF_GATE = 0.4; // below → don't show a number
 const CONF_LOW = 0.6; // below → show but flag "low confidence"
-const ROI_SHIFT_GATE = 0.3; // drop frames whose ROI brightness jumps >30%
 
 const MIN_VL_FRAMES = 60; // enough frames for a VitalLens estimate
 
@@ -85,7 +84,6 @@ export default function EyeStation({
     const times: number[] = [];
     const greens: number[] = [];
     const earSeries: number[] = [];
-    let runningGreen = 0;
     let faceFrames = 0;
     let trackEnded = false;
 
@@ -226,16 +224,10 @@ export default function EyeStation({
             if (roi.w > 0 && roi.h > 0) {
               sampleCtx.drawImage(video, 0, 0, vw, vh);
               const px = sampleCtx.getImageData(roi.x, roi.y, roi.w, roi.h).data;
-              const g = meanRGB(px).g;
-              // frame-gate: skip lighting/motion jumps
-              const jump =
-                runningGreen > 0 ? Math.abs(g - runningGreen) / runningGreen : 0;
-              if (runningGreen === 0 || jump <= ROI_SHIFT_GATE) {
-                times.push(now);
-                greens.push(g);
-                runningGreen =
-                  runningGreen === 0 ? g : runningGreen * 0.9 + g * 0.1;
-              }
+              // Collect every frame — the rPPG pipeline (detrend + high-pass) handles
+              // slow drift, so no per-frame gating is needed here.
+              times.push(now);
+              greens.push(meanRGB(px).g);
               // draw ROI box
               octx.strokeStyle = '#22d3ee';
               octx.lineWidth = 3;
