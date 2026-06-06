@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import VoiceStation from '../stations/VoiceStation';
 import {
   DEFAULT_SETTINGS,
   getSettings,
@@ -38,6 +39,8 @@ const FIELDS: {
 export default function SettingsView() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
+  const [voiceTestOpen, setVoiceTestOpen] = useState(false);
+  const [voiceTestKey, setVoiceTestKey] = useState(0);
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -113,6 +116,40 @@ export default function SettingsView() {
         API keys are stored only on this device in Chrome local storage. Voice analysis
         (jitter, shimmer, HNR) always runs locally with praatfan — no key required.
       </p>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="text-sm font-semibold text-slate-700">Try voice test</p>
+        <p className="mt-1 text-xs text-slate-500">
+          Run the sustained “ahhhh” check without starting a full check-in.
+        </p>
+        {!voiceTestOpen ? (
+          <button
+            type="button"
+            onClick={() => {
+              setVoiceTestOpen(true);
+              setVoiceTestKey((k) => k + 1);
+            }}
+            className="mt-3 min-h-11 w-full rounded-lg border border-teal-200 bg-teal-50 text-sm font-semibold text-teal-800 hover:bg-teal-100"
+          >
+            Open voice test
+          </button>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <VoiceStation
+              key={voiceTestKey}
+              onComplete={() => setVoiceTestOpen(false)}
+              onError={() => setVoiceTestKey((k) => k + 1)}
+            />
+            <button
+              type="button"
+              onClick={() => setVoiceTestOpen(false)}
+              className="w-full rounded-lg border border-slate-300 py-2 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              Close
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
