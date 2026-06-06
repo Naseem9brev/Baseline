@@ -25,14 +25,14 @@ export interface EyeResult {
   cameraUsed: true;
 }
 
-const CAPTURE_MS = 20_000;
-const MIN_VALID_MS = 15_000;
-const MIN_FACE_FRAMES = 150; // ~5s of detected face
+const CAPTURE_MS = 10_000; // ~10s is plenty for a stable HR estimate
+const MIN_VALID_MS = 6_000;
+const MIN_FACE_FRAMES = 60; // ~face present for the bulk of the capture
 const CONF_GATE = 0.4; // below → don't show a number
 const CONF_LOW = 0.6; // below → show but flag "low confidence"
 const ROI_SHIFT_GATE = 0.3; // drop frames whose ROI brightness jumps >30%
 
-const MIN_VL_FRAMES = 120; // ~5s — enough for a VitalLens estimate
+const MIN_VL_FRAMES = 60; // enough frames for a VitalLens estimate
 
 type Phase = 'init' | 'capturing' | 'analyzing' | 'result';
 
