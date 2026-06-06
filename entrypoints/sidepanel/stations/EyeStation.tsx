@@ -142,7 +142,7 @@ export default function EyeStation({
       if (!gotFrame) {
         console.error('[Eye] camera delivered no frames (device busy?)');
         setFailMsg(
-          'Camera turned on but sent no video. Another app may be using it, or macOS is blocking the camera for Chrome (System Settings → Privacy & Security → Camera).',
+          `Camera sent no video (track muted: ${track?.muted}, state: ${track?.readyState}, size: ${video.videoWidth}x${video.videoHeight}). The camera works in a normal tab but not the side panel — likely a side-panel capture limitation.`,
         );
         return;
       }
