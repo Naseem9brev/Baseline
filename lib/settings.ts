@@ -1,0 +1,47 @@
+/** User-provided API keys — stored in chrome.storage.local, never in the build. */
+
+export interface AppSettings {
+  /** Z.AI platform key for GLM 5.1 (voice summaries, GP narrative). */
+  zaiApiKey: string;
+  /** Optional ElevenLabs key if you add spoken instructions later. */
+  elevenLabsApiKey: string;
+  /** ElevenLabs voice ID (optional). */
+  elevenLabsVoiceId: string;
+}
+
+const KEY = 'baseline:settings';
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  zaiApiKey: '',
+  elevenLabsApiKey: '',
+  elevenLabsVoiceId: '',
+};
+
+export async function getSettings(): Promise<AppSettings> {
+  const res = await chrome.storage.local.get(KEY);
+  return { ...DEFAULT_SETTINGS, ...(res[KEY] as Partial<AppSettings> | undefined) };
+}
+
+export async function saveSettings(partial: Partial<AppSettings>): Promise<AppSettings> {
+  const next = { ...(await getSettings()), ...partial };
+  await chrome.storage.local.set({ [KEY]: next });
+  return next;
+}
+
+export async function getZaiApiKey(): Promise<string | null> {
+  const key = (await getSettings()).zaiApiKey.trim();
+  return key || null;
+}
+
+export function onSettingsChanged(cb: (settings: AppSettings) => void): () => void {
+  const listener = (
+    changes: Record<string, chrome.storage.StorageChange>,
+    area: string,
+  ) => {
+    if (area === 'local' && changes[KEY]) {
+      cb({ ...DEFAULT_SETTINGS, ...(changes[KEY].newValue as Partial<AppSettings>) });
+    }
+  };
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
+}
