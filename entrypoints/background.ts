@@ -3,6 +3,14 @@ import {
   scheduleDailyReminder,
   showReminderNotification,
 } from '@/lib/reminder';
+import { getSettings, onSettingsChanged } from '@/lib/settings';
+
+/** Apply the user's reminder preference: schedule at their hour, or clear it. */
+async function applyReminderFromSettings(): Promise<void> {
+  const { reminderEnabled, reminderHour } = await getSettings();
+  if (reminderEnabled) await scheduleDailyReminder(reminderHour);
+  else await chrome.alarms.clear(REMINDER_ALARM);
+}
 
 export default defineBackground(() => {
   // Open the side panel when the user clicks the toolbar icon.
@@ -10,15 +18,18 @@ export default defineBackground(() => {
     ?.setPanelBehavior({ openPanelOnActionClick: true })
     .catch((err) => console.error('[Baseline] setPanelBehavior failed', err));
 
-  // Schedule the daily reminder on install and on browser startup.
-  chrome.runtime.onInstalled.addListener(() => scheduleDailyReminder());
-  chrome.runtime.onStartup.addListener(() => scheduleDailyReminder());
+  // Schedule the daily reminder (honoring saved settings) on install + startup.
+  chrome.runtime.onInstalled.addListener(() => void applyReminderFromSettings());
+  chrome.runtime.onStartup.addListener(() => void applyReminderFromSettings());
 
-  // When the daily alarm fires: notify, then re-schedule tomorrow's.
+  // Reschedule whenever the user changes the reminder time / toggle in Settings.
+  onSettingsChanged(() => void applyReminderFromSettings());
+
+  // When the daily alarm fires: notify, then re-schedule the next one.
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === REMINDER_ALARM) {
       showReminderNotification();
-      scheduleDailyReminder();
+      void applyReminderFromSettings();
     }
   });
 
@@ -32,13 +43,7 @@ export default defineBackground(() => {
     }
   });
 
-  // Let the side panel trigger a test notification (for the demo).
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (msg?.type === 'baseline:test-reminder') {
-      showReminderNotification();
-      return;
-    }
-
     if (msg?.type === 'baseline:elevenlabs-tts') {
       void (async () => {
         try {

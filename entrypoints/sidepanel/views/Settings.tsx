@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import VoiceStation from '../stations/VoiceStation';
+import ReminderControls from '../components/ReminderControls';
 import { testElevenLabsConnection } from '@/lib/elevenlabs';
 import {
   DEFAULT_SETTINGS,
@@ -9,8 +10,13 @@ import {
   type AppSettings,
 } from '@/lib/settings';
 
+// Only the string-valued settings are rendered as text inputs here.
+type StringSettingKey = {
+  [K in keyof AppSettings]: AppSettings[K] extends string ? K : never;
+}[keyof AppSettings];
+
 const FIELDS: {
-  key: keyof AppSettings;
+  key: StringSettingKey;
   label: string;
   hint?: string;
   link?: { href: string; text: string };
@@ -72,6 +78,12 @@ export default function SettingsView() {
     await saveSettings(settings);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2000);
+  }
+
+  // Reminder changes save immediately so the background reschedules the alarm.
+  async function updateReminder(next: { enabled: boolean; hour: number }) {
+    setSettings((s) => ({ ...s, reminderEnabled: next.enabled, reminderHour: next.hour }));
+    await saveSettings({ reminderEnabled: next.enabled, reminderHour: next.hour });
   }
 
   async function testReadAloud() {
@@ -168,6 +180,21 @@ export default function SettingsView() {
         (jitter, shimmer, HNR) always runs locally with praatfan — no key required.
         Add Z.AI or Gemini for AI-written summaries.
       </p>
+
+      <div className="card">
+        <p className="eyebrow">Reminder</p>
+        <div className="mt-3">
+          <ReminderControls
+            enabled={settings.reminderEnabled}
+            hour={settings.reminderHour}
+            onChange={(next) => void updateReminder(next)}
+          />
+        </div>
+        <p className="muted mt-3" style={{ fontSize: 11.5, lineHeight: 1.5 }}>
+          A gentle notification to do your 60-second check-in. Fires once a day at your
+          chosen time — all on this device.
+        </p>
+      </div>
 
       <div className="card">
         <p className="serif-h" style={{ fontSize: 16 }}>Try voice test</p>

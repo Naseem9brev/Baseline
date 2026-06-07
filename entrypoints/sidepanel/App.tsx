@@ -10,8 +10,10 @@ import type { StationKey, StationScore } from '@/lib/analysis/types';
 import { averageScore, currentStreak, totalCheckins } from '@/lib/stats';
 import { exportJson, exportPdf } from '@/lib/export';
 import { seedDemoData } from '@/lib/seed';
+import { getSettings } from '@/lib/settings';
 import CheckinFlow from './CheckinFlow';
 import SettingsView from './views/Settings';
+import Onboarding from './components/Onboarding';
 import Brand from './components/Brand';
 import { Ic } from './components/icons';
 import StatusPill, { statusFromScore } from './components/StatusPill';
@@ -33,10 +35,16 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [records, setRecords] = useState<RecordMap>({});
+  // undefined = still loading the flag; gate the app until we know.
+  const [onboarded, setOnboarded] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
     getRecords().then(setRecords);
     return onRecordsChanged(setRecords);
+  }, []);
+
+  useEffect(() => {
+    getSettings().then((s) => setOnboarded(s.onboardingComplete));
   }, []);
 
   const today = records[dateKey()];
@@ -47,6 +55,9 @@ export default function App() {
     setRunning(true);
     setTab('today');
   }
+
+  if (onboarded === undefined) return <div className="app" />;
+  if (!onboarded) return <Onboarding onDone={() => setOnboarded(true)} />;
 
   return (
     <div className="app">
@@ -395,15 +406,6 @@ function ExportCard() {
           Export raw data (JSON)
         </button>
         <button
-          onClick={() => {
-            chrome.runtime.sendMessage({ type: 'baseline:test-reminder' });
-            flash('Test reminder sent.');
-          }}
-          className="btn btn-quiet"
-        >
-          Test reminder
-        </button>
-        <button
           onClick={async () => {
             await seedDemoData();
             flash('Demo history added.');
@@ -420,7 +422,7 @@ function ExportCard() {
         </p>
       )}
       <p className="muted mt-2 text-center" style={{ fontSize: 10.5 }}>
-        Daily reminder at 9:00 AM · all data stays on this device.
+        Set your daily reminder in Settings · all data stays on this device.
       </p>
     </div>
   );
