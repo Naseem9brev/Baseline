@@ -18,6 +18,7 @@ import StatusPill, { statusFromScore } from './components/StatusPill';
 import StreakPlant, { streakWord } from './components/StreakPlant';
 import ActivityGrid, { GridLegend } from './components/ActivityGrid';
 import Sparkline from './components/Sparkline';
+import ReadyChecklist from './components/ReadyChecklist';
 
 type Tab = 'home' | 'today' | 'history';
 
@@ -59,11 +60,13 @@ export default function App() {
         <button
           type="button"
           aria-label="Settings"
+          title={settingsOpen ? 'Close settings' : 'Settings'}
           onClick={() => setSettingsOpen((s) => !s)}
-          className="grid h-9 w-9 place-items-center rounded-lg"
-          style={{ color: settingsOpen ? 'var(--ginseng-deep)' : 'var(--ink-3)' }}
+          className="settings-btn"
+          style={settingsOpen ? { color: 'var(--ginseng-deep)', background: 'var(--ginseng-wash)' } : undefined}
         >
-          {settingsOpen ? <Ic.x /> : <Ic.gear />}
+          {settingsOpen ? <Ic.x width={18} height={18} /> : <Ic.gear width={18} height={18} />}
+          <span>{settingsOpen ? 'Close' : 'Settings'}</span>
         </button>
       </header>
 
@@ -89,7 +92,12 @@ export default function App() {
         )}
       </main>
 
-      {!settingsOpen && <BottomNav tab={tab} onTab={setTab} />}
+      {!settingsOpen && (
+        <>
+          <p className="appfoot">100% on-device — provisional, not medical advice.</p>
+          <BottomNav tab={tab} onTab={setTab} />
+        </>
+      )}
     </div>
   );
 }
@@ -183,9 +191,6 @@ function HomeView({
         </span>
         <Ic.arrow width={20} height={20} style={{ color: 'var(--ginseng-deep)', flex: '0 0 auto' }} />
       </button>
-      <p className="muted" style={{ fontSize: 11.5, marginTop: 10, maxWidth: 280 }}>
-        100% on-device — provisional, not medical advice.
-      </p>
     </div>
   );
 }
@@ -206,33 +211,29 @@ function TodayView({
 
   return (
     <div className="space-y-4">
-      <div className="card">
-        <p className="eyebrow">Today</p>
-        {today ? (
-          <>
-            <div className="mt-3 flex items-center gap-3">
-              <StatusPill status={statusFromScore(today.baselineScore)} />
-              <span className="tabnum serif-h" style={{ fontSize: 22 }}>
-                {today.baselineScore}
-              </span>
-            </div>
-            <p className="muted mt-2" style={{ fontSize: 13.5 }}>
-              {today.feedback}
-            </p>
-            <div className="mt-3 space-y-2">
-              {(Object.entries(today.stations) as [StationKey, StationScore][]).map(
-                ([key, s]) => (
-                  <StationRow key={key} name={STATION_LABELS[key]} score={s} />
-                ),
-              )}
-            </div>
-          </>
-        ) : (
-          <p className="muted mt-2" style={{ fontSize: 14 }}>
-            No check-in yet today. Take 60 seconds to log your baseline.
+      {today ? (
+        <div className="card">
+          <p className="eyebrow">Today</p>
+          <div className="mt-3 flex items-center gap-3">
+            <StatusPill status={statusFromScore(today.baselineScore)} />
+            <span className="tabnum serif-h" style={{ fontSize: 22 }}>
+              {today.baselineScore}
+            </span>
+          </div>
+          <p className="muted mt-2" style={{ fontSize: 13.5 }}>
+            {today.feedback}
           </p>
-        )}
-      </div>
+          <div className="mt-3 space-y-2">
+            {(Object.entries(today.stations) as [StationKey, StationScore][]).map(
+              ([key, s]) => (
+                <StationRow key={key} name={STATION_LABELS[key]} score={s} />
+              ),
+            )}
+          </div>
+        </div>
+      ) : (
+        <ReadyChecklist />
+      )}
 
       <button onClick={onStart} className="btn btn-primary">
         {today ? 'Check in again' : 'Start daily check-in'}
