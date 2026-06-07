@@ -32,6 +32,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [running, setRunning] = useState(false);
+  const [justGrew, setJustGrew] = useState(false);
   const [records, setRecords] = useState<RecordMap>({});
 
   useEffect(() => {
@@ -43,7 +44,14 @@ export default function App() {
   const streak = currentStreak(records);
   const latest = useMemo(() => latestRecord(records), [records]);
 
+  // Navigating away ends the one-shot post-check-in plant animation.
+  function navigate(t: Tab) {
+    setJustGrew(false);
+    setTab(t);
+  }
+
   function beginCheckin() {
+    setJustGrew(false);
     setRunning(true);
     setTab('today');
   }
@@ -83,9 +91,14 @@ export default function App() {
         ) : tab === 'today' ? (
           <TodayView
             today={today}
+            streak={streak}
+            justGrew={justGrew}
             running={running}
             onStart={() => setRunning(true)}
-            onFinished={() => setRunning(false)}
+            onFinished={() => {
+              setRunning(false);
+              setJustGrew(true);
+            }}
           />
         ) : (
           <HistoryView records={records} streak={streak} />
@@ -95,7 +108,7 @@ export default function App() {
       {!settingsOpen && (
         <>
           <p className="appfoot">100% on-device — provisional, not medical advice.</p>
-          <BottomNav tab={tab} onTab={setTab} />
+          <BottomNav tab={tab} onTab={navigate} />
         </>
       )}
     </div>
@@ -198,11 +211,15 @@ function HomeView({
 /* ───────────────────────── Today (check-in) ───────────────────────── */
 function TodayView({
   today,
+  streak,
+  justGrew,
   running,
   onStart,
   onFinished,
 }: {
   today?: DayRecord;
+  streak: number;
+  justGrew: boolean;
   running: boolean;
   onStart: () => void;
   onFinished: () => void;
@@ -211,6 +228,17 @@ function TodayView({
 
   return (
     <div className="space-y-4">
+      {today && justGrew && (
+        <div className="center-col card tint" style={{ paddingTop: 8, paddingBottom: 12 }}>
+          <StreakPlant streak={streak} size={150} animate />
+          <p className="serif-h" style={{ fontSize: 16, marginTop: 2 }}>
+            Nice — your streak grew
+          </p>
+          <p className="muted" style={{ fontSize: 12.5 }}>
+            {streak} day{streak === 1 ? '' : 's'} · {streakWord(streak)}
+          </p>
+        </div>
+      )}
       {today ? (
         <div className="card">
           <p className="eyebrow">Today</p>

@@ -527,9 +527,44 @@ button {
     transform: scale(1);
   }
 }
+
+/* ===================== streak plant grow animation ===================== */
+.plant-grow .plant-stem {
+  stroke-dasharray: 1;
+  animation: plantStem 0.7s ease-out both;
+}
+.plant-grow .plant-leaf {
+  animation: plantPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.plant-grow .plant-top {
+  animation: plantPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes plantStem {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes plantPop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .ready-anim .ready-item,
-  .ready-anim .ready-check {
+  .ready-anim .ready-check,
+  .plant-grow .plant-stem,
+  .plant-grow .plant-leaf,
+  .plant-grow .plant-top {
     animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
   }
 }
