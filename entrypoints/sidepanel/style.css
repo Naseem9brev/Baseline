@@ -1,7 +1,101 @@
 @import 'tailwindcss';
 
+/* ============================================================
+   Baseline — visual system (from design/baseline-ui)
+   TCM-herb palette · warm paper · Spectral + Hanken Grotesk
+   Raw token names kept verbatim so ported classes work as-is;
+   honest aliases (--primary / --monitor) added alongside.
+   ============================================================ */
+
 :root {
   color-scheme: light;
+
+  /* warm neutral base (paper) */
+  --paper: #f7f3ec;
+  --paper-2: #fcfaf4;
+  --paper-3: #ffffff;
+  --paper-sunk: #efe8db;
+  --line: #e6ddcd;
+  --line-soft: #efe8dc;
+
+  /* ink */
+  --ink: #2b2722;
+  --ink-2: #6b6256;
+  --ink-3: #9c9181;
+  --ink-4: #c3b8a4;
+
+  /* herb accents — saffron is PRIMARY (prototype called it --ginseng) */
+  --ginseng: #b8772b;
+  --ginseng-deep: #95601e;
+  --ginseng-soft: #ead4ac;
+  --ginseng-wash: #f7efdd;
+
+  --saffron: #9c6b3f; /* MONITOR — amber-brown, distinct from primary */
+  --saffron-soft: #ebdcc6;
+
+  --sage: #6b7355;
+  --sage-deep: #555c42;
+  --sage-soft: #e1e4d6;
+
+  --jujube: #8a3a3a;
+  --jujube-soft: #ecd8d2;
+
+  --plum: #6e5773;
+  --plum-soft: #e5dce6;
+  --rose: #b27e84;
+  --clay: #b5532f;
+
+  /* semantic status */
+  --stable: var(--sage);
+  --stable-soft: var(--sage-soft);
+  --monitor: var(--saffron);
+  --monitor-soft: var(--saffron-soft);
+  --flag: var(--jujube);
+  --flag-soft: var(--jujube-soft);
+
+  /* honest aliases for the primary/monitor naming quirk */
+  --primary: var(--ginseng);
+  --primary-deep: var(--ginseng-deep);
+  --primary-soft: var(--ginseng-soft);
+  --primary-wash: var(--ginseng-wash);
+
+  /* type */
+  --serif: 'Spectral', Georgia, 'Times New Roman', serif;
+  --sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+
+  /* shape / depth */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --shadow-card: 0 1px 2px rgba(60, 46, 30, 0.05), 0 6px 18px -10px rgba(70, 52, 30, 0.18);
+  --shadow-pop: 0 24px 60px -28px rgba(54, 40, 22, 0.42), 0 4px 14px -8px rgba(54, 40, 22, 0.22);
+}
+
+/* Tailwind v4 named utilities → bg-paper, text-ink, bg-saffron, font-serif, etc. */
+@theme {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-paper-sunk: var(--paper-sunk);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-saffron: var(--ginseng);
+  --color-saffron-deep: var(--ginseng-deep);
+  --color-saffron-wash: var(--ginseng-wash);
+  --color-sage: var(--sage);
+  --color-sage-deep: var(--sage-deep);
+  --color-amber: var(--saffron);
+  --color-jujube: var(--jujube);
+  --font-serif: var(--serif);
+  --font-sans: var(--sans);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html,
@@ -12,6 +106,340 @@ body,
 }
 
 body {
-  font-family:
-    'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* ===================== app shell ===================== */
+.app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+.app-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 20px 24px;
+}
+.app-scroll.center {
+  display: flex;
+  flex-direction: column;
+}
+
+/* slim top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 46px;
+  padding: 0 14px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+
+/* bottom nav */
+.nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+  background: var(--paper-2);
+  padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 4px 6px;
+  border-radius: 11px;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.nav-item.on {
+  color: var(--ginseng-deep);
+  background: var(--ginseng-wash);
+}
+.nav-item svg {
+  width: 21px;
+  height: 21px;
+}
+
+/* ===================== components ===================== */
+.mark {
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--ginseng);
+  color: #fbf3e6;
+  flex: 0 0 auto;
+}
+
+.btn {
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--r-md);
+  padding: 15px 20px;
+  width: 100%;
+  cursor: pointer;
+  letter-spacing: 0.005em;
+  line-height: 1;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn-primary {
+  background: var(--ginseng);
+  color: #fbf3e6;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 8px 18px -10px rgba(124, 85, 48, 0.6);
+}
+.btn-ghost {
+  background: var(--paper-3);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.btn-quiet {
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  font-size: 15px;
+  padding: 12px 16px;
+}
+/* icon + label button row */
+.btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.card {
+  background: var(--paper-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+.card.flat {
+  box-shadow: none;
+}
+.card.wash {
+  background: var(--paper-2);
+}
+.card.tint {
+  background: var(--ginseng-wash);
+  border-color: var(--ginseng-soft);
+}
+
+/* status pill */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+.st-stable {
+  background: var(--stable-soft);
+  color: var(--sage-deep);
+}
+.st-stable .dot {
+  background: var(--sage);
+}
+.st-monitor {
+  background: var(--monitor-soft);
+  color: #6f4a21;
+}
+.st-monitor .dot {
+  background: var(--saffron);
+}
+.st-flag {
+  background: var(--flag-soft);
+  color: var(--jujube);
+}
+.st-flag .dot {
+  background: var(--jujube);
+}
+
+/* type helpers */
+.eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.serif-h {
+  font-family: var(--serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.tabnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* metric row */
+.mrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mrow + .mrow {
+  margin-top: 13px;
+}
+.mrow-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--paper-sunk);
+  overflow: hidden;
+}
+.track > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* progress steps */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.step-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.step-pill.on {
+  background: var(--ginseng);
+  color: #fbf3e6;
+}
+.step-pill.done {
+  background: var(--sage-soft);
+  color: var(--sage-deep);
+}
+.step-pill.todo {
+  background: var(--paper-sunk);
+  color: var(--ink-3);
+}
+.step-num {
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* activity grid */
+.grid-cal {
+  display: flex;
+  gap: 3px;
+}
+.grid-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.gcell {
+  width: 9px;
+  height: 9px;
+  border-radius: 2.5px;
+}
+
+/* inputs */
+.input {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 18px;
+  color: var(--ink);
+  background: var(--paper-3);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 15px;
+  outline: none;
+}
+.input::placeholder {
+  color: var(--ink-4);
+}
+.input:focus {
+  border-color: var(--ginseng);
+  box-shadow: 0 0 0 4px var(--ginseng-wash);
+}
+
+/* waveform bars */
+.wave {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 64px;
+}
+.wave i {
+  width: 5px;
+  border-radius: 999px;
+  background: var(--ginseng);
+  display: block;
+}
+.wave i.off {
+  background: var(--paper-sunk);
+}
+
+/* tiny helpers */
+.muted {
+  color: var(--ink-3);
+}
+.center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.divider {
+  height: 1px;
+  background: var(--line);
 }

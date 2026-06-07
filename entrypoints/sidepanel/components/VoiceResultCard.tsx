@@ -25,9 +25,9 @@ export default function VoiceResultCard({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="card">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Voice results</p>
+          <p className="eyebrow">Voice results</p>
           <span
             className={
               'rounded-full px-2.5 py-0.5 text-xs font-semibold ' +
@@ -38,7 +38,7 @@ export default function VoiceResultCard({
           </span>
         </div>
 
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-[var(--ink-2)]">
           Sustained “ahhhh” · analysed on this device (praatfan)
         </p>
 
@@ -70,40 +70,33 @@ export default function VoiceResultCard({
         </dl>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          What your results mean
-        </p>
+      <div className="card flat wash">
+        <p className="eyebrow">What your results mean</p>
         <div className="mt-2 space-y-3">
           {summary.split(/\n\n+/).map((paragraph, i) => (
-            <p key={i} className="text-sm leading-relaxed text-slate-700">
+            <p key={i} className="text-sm leading-relaxed text-[var(--ink)]">
               {paragraph}
             </p>
           ))}
         </div>
         {aiEnhancing ? (
-          <p className="mt-3 text-xs text-slate-500">Personalising summary…</p>
+          <p className="mt-3 text-xs text-[var(--ink-2)]">Personalising summary…</p>
         ) : usedAi ? (
-          <p className="mt-3 text-[10px] text-slate-400">
+          <p className="mt-3 text-[10px] text-[var(--ink-3)]">
             Summary by {aiProvider ?? 'AI'} · only your numbers were sent, never audio
           </p>
         ) : (
-          <p className="mt-3 text-[10px] text-slate-400">
+          <p className="mt-3 text-[10px] text-[var(--ink-3)]">
             Add a Z.AI or Gemini API key in Settings for an AI-written summary (optional)
           </p>
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onContinue}
-        disabled={aiEnhancing}
-        className="min-h-12 w-full rounded-xl bg-teal-600 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <button type="button" onClick={onContinue} disabled={aiEnhancing} className="btn btn-primary">
         Continue
       </button>
 
-      <p className="text-center text-[10px] leading-relaxed text-slate-400">
+      <p className="text-center text-[10px] leading-relaxed text-[var(--ink-3)]">
         Not a diagnostic tool · compare trends over your daily check-ins
       </p>
     </div>
@@ -124,11 +117,11 @@ function MetricRow({
   return (
     <div className="flex items-center gap-3">
       <div className="min-w-0 flex-1">
-        <dt className="text-sm font-medium text-slate-700">{label}</dt>
-        <dd className="text-xs text-slate-500">{detail}</dd>
+        <dt className="text-sm font-medium text-[var(--ink)]">{label}</dt>
+        <dd className="text-xs text-[var(--ink-2)]">{detail}</dd>
       </div>
       <div className="text-right">
-        <div className="text-sm font-semibold tabular-nums text-slate-800">{value}</div>
+        <div className="text-sm font-semibold tabular-nums text-ink">{value}</div>
         <span
           className={
             'mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ' +

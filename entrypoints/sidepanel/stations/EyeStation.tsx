@@ -189,8 +189,8 @@ export default function EyeStation({
             }
             vlFrames.push(frame);
 
-            // overlay: face box
-            octx.strokeStyle = '#22d3ee';
+            // overlay: face box (saffron token value — canvas can't read CSS vars)
+            octx.strokeStyle = '#B8772B';
             octx.lineWidth = 3;
             octx.strokeRect(bb.sx, bb.sy, bb.sw, bb.sh);
           }
@@ -308,33 +308,25 @@ export default function EyeStation({
       setAttempt((a) => a + 1);
     };
     return (
-      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-        <p className="text-sm font-medium text-amber-800">{heading}</p>
-        <p className="text-xs text-amber-700">{message}</p>
+      <div className="card tint space-y-3 text-center">
+        <p className="serif-h" style={{ fontSize: 16 }}>
+          {heading}
+        </p>
+        <p style={{ fontSize: 13, color: 'var(--ink-2)' }}>{message}</p>
         {needsPerm && (
-          <button
-            onClick={openExtensionCameraSettings}
-            className="w-full rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
-          >
+          <button onClick={openExtensionCameraSettings} className="btn btn-primary">
             Open camera settings
           </button>
         )}
         <div className="flex gap-2">
           <button
             onClick={retry}
-            className={
-              'flex-1 rounded-lg py-2 text-sm font-semibold ' +
-              (needsPerm
-                ? 'border border-teal-300 bg-white text-teal-800 hover:bg-teal-50'
-                : 'bg-teal-600 text-white hover:bg-teal-700')
-            }
+            className={'btn ' + (needsPerm ? 'btn-ghost' : 'btn-primary')}
+            style={{ flex: 1 }}
           >
             Try again
           </button>
-          <button
-            onClick={() => onError('error')}
-            className="flex-1 rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-          >
+          <button onClick={() => onError('error')} className="btn btn-quiet" style={{ flex: 1 }}>
             Skip
           </button>
         </div>
@@ -360,10 +352,10 @@ export default function EyeStation({
 
   if (phase === 'analyzing') {
     return (
-      <div className="grid place-items-center gap-3 rounded-xl bg-slate-900 py-14 text-center">
-        <Spinner />
-        <p className="text-sm text-white">Analyzing heart rate…</p>
-        <p className="text-[11px] text-white/60">
+      <div className="card flat wash grid place-items-center gap-3 py-14 text-center">
+        <Spinner dark />
+        <p style={{ fontSize: 14, color: 'var(--ink)' }}>Analyzing heart rate…</p>
+        <p className="muted" style={{ fontSize: 11.5 }}>
           Estimating from your face via VitalLens.
         </p>
       </div>
@@ -372,19 +364,20 @@ export default function EyeStation({
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-900">
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          className="h-full w-full object-cover"
-        />
+      <div
+        className="relative aspect-[4/3] overflow-hidden rounded-xl"
+        style={{ background: 'var(--ink)' }}
+      >
+        <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
         <canvas
           ref={overlayRef}
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
         {phase === 'init' && (
-          <div className="absolute inset-0 grid place-items-center bg-slate-900/80 text-center text-sm text-white">
+          <div
+            className="absolute inset-0 grid place-items-center text-center text-sm text-white"
+            style={{ background: 'color-mix(in srgb, var(--ink) 80%, transparent)' }}
+          >
             <div>
               <Spinner />
               <p className="mt-2">Starting camera + model…</p>
@@ -392,23 +385,23 @@ export default function EyeStation({
           </div>
         )}
         {phase === 'capturing' && (
-          <div className="absolute right-2 top-2 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white tabular-nums">
+          <div
+            className="tabnum absolute right-2 top-2 rounded-full px-2.5 py-1 text-xs font-semibold text-white"
+            style={{ background: 'color-mix(in srgb, var(--ink) 60%, transparent)' }}
+          >
             {remaining}s
           </div>
         )}
       </div>
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center" style={{ fontSize: 14, color: 'var(--ink-2)' }}>
         {phase === 'init'
           ? 'Allow camera access to begin.'
           : 'Hold still, face steady light, look at the camera…'}
       </p>
-      <p className="text-center text-[11px] text-slate-400">
+      <p className="muted text-center" style={{ fontSize: 11.5 }}>
         Reading your heart rate from your face via VitalLens. Nothing is recorded.
       </p>
-      <button
-        onClick={onSkip}
-        className="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-400 hover:bg-slate-50"
-      >
+      <button onClick={onSkip} className="btn btn-quiet">
         Skip eye check
       </button>
     </div>
@@ -428,25 +421,19 @@ function ResultCard({
 }) {
   if (c.status === 'retry') {
     return (
-      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-        <p className="text-sm font-medium text-amber-800">
+      <div className="card tint space-y-3 text-center">
+        <p className="serif-h" style={{ fontSize: 16 }}>
           Couldn’t get a clean read.
         </p>
-        <p className="text-xs text-amber-700">
+        <p style={{ fontSize: 13, color: 'var(--ink-2)' }}>
           Sit still, face steady overhead light, and avoid moving for the count.
         </p>
         <DebugLine d={c.debug} />
         <div className="flex gap-2">
-          <button
-            onClick={onRetry}
-            className="flex-1 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700"
-          >
+          <button onClick={onRetry} className="btn btn-primary" style={{ flex: 1 }}>
             Try again
           </button>
-          <button
-            onClick={onSkip}
-            className="flex-1 rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-          >
+          <button onClick={onSkip} className="btn btn-quiet" style={{ flex: 1 }}>
             Skip
           </button>
         </div>
@@ -457,43 +444,43 @@ function ResultCard({
   const { result, band } = c;
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
-        <p className="text-xs uppercase tracking-wide text-slate-400">
+      <div className="card text-center">
+        <p className="eyebrow">
           Heart rate {c.status === 'low' && '· low confidence'}
         </p>
-        <p className="mt-1 text-3xl font-bold text-teal-700">
+        <p className="serif-h tabnum mt-1" style={{ fontSize: 34, color: 'var(--ginseng-deep)' }}>
           ≈{result.heartRateBpm}
-          <span className="text-base font-medium text-slate-400">
+          <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink-3)' }}>
             {' '}
             ±{band} bpm
           </span>
         </p>
-        <p className="text-[11px] text-slate-400">
+        <p className="muted" style={{ fontSize: 11 }}>
           estimate · via VitalLens (cloud)
         </p>
 
-        <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
-          Blink rate <span className="font-semibold">{result.blinkRate}</span>/min
+        <div
+          className="mt-3 border-t pt-3"
+          style={{ borderColor: 'var(--line)', fontSize: 14, color: 'var(--ink-2)' }}
+        >
+          Blink rate <span className="tabnum font-semibold">{result.blinkRate}</span>/min
         </div>
       </div>
 
-      <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-400">
+      <p
+        className="card flat wash"
+        style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--ink-3)', padding: '10px 12px' }}
+      >
         Estimated from facial colour — not medical-grade. One reading isn’t a
         baseline; lighting, movement, caffeine and more affect it. If you feel
         unwell, trust your symptoms over this number.
       </p>
 
       <div className="flex gap-2">
-        <button
-          onClick={onSave}
-          className="flex-1 rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
-        >
+        <button onClick={onSave} className="btn btn-primary" style={{ flex: 1 }}>
           Save & continue
         </button>
-        <button
-          onClick={onRetry}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-        >
+        <button onClick={onRetry} className="btn btn-ghost" style={{ flex: '0 0 auto', width: 'auto', padding: '0 18px' }}>
           Retry
         </button>
       </div>
@@ -501,16 +488,23 @@ function ResultCard({
   );
 }
 
-function Spinner() {
+function Spinner({ dark = false }: { dark?: boolean }) {
   return (
-    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+    <div
+      className="mx-auto h-6 w-6 animate-spin rounded-full border-2"
+      style={
+        dark
+          ? { borderColor: 'var(--ink-4)', borderTopColor: 'var(--ink)' }
+          : { borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }
+      }
+    />
   );
 }
 
 /** On-screen diagnostics so issues are visible without DevTools. */
 function DebugLine({ d }: { d: Computed['debug'] }) {
   return (
-    <p className="font-mono text-[10px] text-slate-400">
+    <p className="muted font-mono" style={{ fontSize: 10 }}>
       diag · {d.elapsedSec}s · faceFrames {d.faceFrames} · vlFrames {d.vlFrames} ·
       track {d.trackEnded ? 'ENDED early ⚠' : 'ok'}
     </p>
