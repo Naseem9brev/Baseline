@@ -11,6 +11,12 @@ export interface AppSettings {
   elevenLabsApiKey: string;
   /** ElevenLabs voice ID (optional). */
   elevenLabsVoiceId: string;
+  /** Whether the daily check-in reminder notification is on. */
+  reminderEnabled: boolean;
+  /** Hour of day (0–23, local time) the daily reminder fires. */
+  reminderHour: number;
+  /** Whether the first-run onboarding has been completed. */
+  onboardingComplete: boolean;
 }
 
 const KEY = 'baseline:settings';
@@ -21,6 +27,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   geminiApiKey: '',
   elevenLabsApiKey: '',
   elevenLabsVoiceId: '',
+  reminderEnabled: true,
+  reminderHour: 9,
+  onboardingComplete: false,
 };
 
 export async function getSettings(): Promise<AppSettings> {
