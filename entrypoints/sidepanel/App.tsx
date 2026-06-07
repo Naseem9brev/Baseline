@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  clearRecords,
   dateKey,
   getRecords,
   onRecordsChanged,
@@ -9,6 +10,7 @@ import {
 import type { StationKey, StationScore } from '@/lib/analysis/types';
 import { averageScore, currentStreak, totalCheckins } from '@/lib/stats';
 import { exportJson, exportPdf } from '@/lib/export';
+import { importJson } from '@/lib/importJson';
 import { seedDemoData } from '@/lib/seed';
 import { getSettings } from '@/lib/settings';
 import CheckinFlow from './CheckinFlow';
@@ -370,10 +372,30 @@ function ExportCard() {
   const [patientName, setPatientName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const flash = (m: string) => {
     setMsg(m);
-    window.setTimeout(() => setMsg(''), 2500);
+    window.setTimeout(() => setMsg(''), 3000);
   };
+
+  async function runImport(file: File) {
+    setImporting(true);
+    try {
+      const r = await importJson(file, 'merge');
+      flash(`Imported — ${r.added} new day${r.added === 1 ? '' : 's'}, ${r.total} total.`);
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Import failed.');
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function clearAll() {
+    if (!window.confirm('Delete all check-in history on this device? This cannot be undone.')) return;
+    await clearRecords();
+    flash('All history cleared.');
+  }
 
   return (
     <div className="card">
@@ -434,6 +456,24 @@ function ExportCard() {
           Export raw data (JSON)
         </button>
         <button
+          disabled={importing}
+          onClick={() => fileRef.current?.click()}
+          className="btn btn-quiet"
+        >
+          {importing ? 'Importing…' : 'Import data (JSON)'}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={(e) => {
+            const file = e.currentTarget.files?.[0];
+            e.currentTarget.value = '';
+            if (file) void runImport(file);
+          }}
+        />
+        <button
           onClick={async () => {
             await seedDemoData();
             flash('Demo history added.');
@@ -443,6 +483,13 @@ function ExportCard() {
         >
           Seed demo data (dev)
         </button>
+        <button
+          onClick={() => void clearAll()}
+          className="btn btn-quiet"
+          style={{ fontSize: 12.5, color: 'var(--jujube)' }}
+        >
+          Clear all data
+        </button>
       </div>
       {msg && (
         <p className="mt-2 text-center" style={{ fontSize: 12, color: 'var(--sage-deep)' }}>
@@ -450,7 +497,7 @@ function ExportCard() {
         </p>
       )}
       <p className="muted mt-2 text-center" style={{ fontSize: 10.5 }}>
-        Set your daily reminder in Settings · all data stays on this device.
+        Export to back up · import restores on a new device · all data stays here.
       </p>
     </div>
   );

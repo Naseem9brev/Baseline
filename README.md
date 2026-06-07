@@ -20,6 +20,31 @@ Everything runs **on your device**. Camera/microphone frames are processed local
 **never uploaded or stored** — only computed scores and a few numeric features are saved
 to `chrome.storage.local`. Export is a local file you control.
 
+## How your history is stored
+
+Each completed check-in becomes one **`DayRecord`** (see `lib/storage.ts`) holding the
+combined `baselineScore`, per-station scores, the raw numeric features, a one-line
+feedback string, and a timestamp — **never** any photo, video, or audio.
+
+- **Where:** all records live in `chrome.storage.local` under the single key
+  `baseline:records`, a map keyed by local date (`YYYY-MM-DD`).
+- **Lifetime:** the data is local to this browser profile. It **survives browser
+  restarts and extension updates**, and is **removed if you uninstall the extension or
+  clear browsing data** for it. There is no cloud sync and no server.
+- **Capacity:** `chrome.storage.local` allows ~10 MB — comfortably years of daily
+  records (each is well under a kilobyte).
+
+### Back up, restore & migrate
+
+History → **Export raw data (JSON)** writes a versioned snapshot
+(`{ app: "Baseline", schema: 1, records }`). To restore it — for example on a new
+computer — use **Import data (JSON)** and pick that file:
+
+- **Import** merges by date and **keeps the days you already have** (only previously
+  missing dates are added), so re-importing is safe.
+- **Clear all data** wipes the local history (with a confirmation) — handy before
+  importing a clean backup.
+
 ## Develop
 
 ```bash
