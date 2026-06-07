@@ -53,8 +53,15 @@ entrypoints/
     stations/            # FaceStation, VoiceStation, ReactionStation
 lib/
   analysis/              # ⚠ placeholder scoring seam — clinical logic defined later
-  storage.ts  stats.ts  reminder.ts  export.ts  seed.ts  mediapipe.ts
+  storage.ts  stats.ts  reminder.ts  export.ts  importJson.ts  seed.ts  mediapipe.ts
 public/
   mediapipe/             # bundled model + wasm
   icon/                  # generated icons
+landing/                 # Next.js marketing + install page (deployed to Vercel)
 ```
+
+## Landing page
+
+A public marketing + install page lives in [`landing/`](landing/) (Next.js, deployed to
+Vercel). It reuses the extension's design tokens and fonts. See
+[`landing/README.md`](landing/README.md) to run or deploy it.
