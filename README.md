@@ -36,6 +36,12 @@ npm run dev        # WXT dev server with auto-reload
 Then click the **Baseline** toolbar icon to open the side panel. Use **History → Seed
 demo data** to populate the heatmap, and **Test reminder** to fire a notification.
 
+## Publishing
+
+To publish to the Chrome Web Store, run `npm run zip` (→ `.output/baseline-<version>-chrome.zip`)
+and follow [`store/SUBMIT.md`](store/). Listing copy, permission justifications, and the
+privacy policy live in [`store/`](store/).
+
 ## Tech
 
 - [WXT](https://wxt.dev) (MV3) + React + TypeScript + Tailwind
