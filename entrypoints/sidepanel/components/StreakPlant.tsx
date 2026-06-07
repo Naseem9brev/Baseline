@@ -27,9 +27,12 @@ export function streakWord(s: number): string {
 export default function StreakPlant({
   streak = 0,
   size = 190,
+  animate = false,
 }: {
   streak?: number;
   size?: number;
+  /** Play a one-shot grow animation (e.g. right after a completed check-in). */
+  animate?: boolean;
 }) {
   const W = 160;
   const H = 168;
@@ -53,20 +56,30 @@ export default function StreakPlant({
   const flower = streak >= 21;
   const bud = streak >= 7 && !flower;
 
+  // Animation timing: stem draws first, leaves stagger up, crown pops last.
+  const leafStyle = (i: number) =>
+    animate
+      ? ({ animationDelay: `${0.28 + i * 0.08}s`, transformBox: 'fill-box', transformOrigin: 'center bottom' } as const)
+      : undefined;
+  const topStyle = animate
+    ? ({ animationDelay: `${0.32 + pairs * 0.08}s`, transformBox: 'fill-box', transformOrigin: 'center bottom' } as const)
+    : undefined;
+
   return (
     <svg
       width={size}
       height={(size * H) / W}
       viewBox={`0 0 ${W} ${H}`}
       fill="none"
+      className={animate ? 'plant-grow' : undefined}
       style={{ overflow: 'visible' }}
     >
       <ellipse cx={cx} cy={topY + 18} rx={44} ry={48} fill="var(--ginseng-wash)" opacity="0.5" />
       <path d={`M 22 ${baseY + 10} H 138`} stroke={saf} strokeWidth="3" strokeLinecap="round" />
       <ellipse cx={cx} cy={baseY + 10} rx={26} ry={5.5} fill="var(--ginseng-soft)" opacity="0.7" />
-      <path d={stem} stroke={sageD} strokeWidth="3" strokeLinecap="round" />
+      <path d={stem} className="plant-stem" pathLength={1} stroke={sageD} strokeWidth="3" strokeLinecap="round" />
       {leaves.map((lf, i) => (
-        <g key={i}>
+        <g key={i} className="plant-leaf" style={leafStyle(i)}>
           <path d={leafPath(lf)} fill={sage} opacity={0.92} />
           <path
             d={`M ${lf.x} ${lf.y} Q ${lf.x + lf.dir * lf.len * 0.34} ${lf.y - lf.len * 0.5} ${lf.x + lf.dir * lf.len * 0.92} ${lf.y - lf.len * 0.46}`}
@@ -77,7 +90,7 @@ export default function StreakPlant({
         </g>
       ))}
       {flower ? (
-        <g>
+        <g className="plant-top" style={topStyle}>
           {[0, 72, 144, 216, 288].map((a) => {
             const r = ((a - 90) * Math.PI) / 180;
             const px = cx + Math.cos(r) * 9;
@@ -99,11 +112,13 @@ export default function StreakPlant({
         </g>
       ) : bud ? (
         <path
+          className="plant-top"
+          style={topStyle}
           d={`M ${cx} ${topY - 12} C ${cx - 7} ${topY - 6}, ${cx - 6} ${topY + 6}, ${cx} ${topY + 6} C ${cx + 6} ${topY + 6}, ${cx + 7} ${topY - 6}, ${cx} ${topY - 12} Z`}
           fill={saf}
         />
       ) : (
-        <g>
+        <g className="plant-top" style={topStyle}>
           <path d={leafPath({ x: cx, y: topY + 4, dir: 1, len: 16 })} fill={sage} />
           <path d={leafPath({ x: cx, y: topY + 4, dir: -1, len: 16 })} fill={sage} />
         </g>
