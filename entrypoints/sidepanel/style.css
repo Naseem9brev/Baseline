@@ -151,6 +151,37 @@ button {
   flex: 0 0 auto;
 }
 
+/* settings button — labelled so it reads clearly as settings */
+.settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px 0 8px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--paper-3);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.settings-btn:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+/* persistent disclaimer footer — fixed above the bottom nav, never scrolls */
+.appfoot {
+  flex: 0 0 auto;
+  text-align: center;
+  padding: 7px 16px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--ink-3);
+  background: var(--paper-2);
+  border-top: 1px solid var(--line-soft);
+}
+
 /* bottom nav */
 .nav {
   display: grid;
@@ -442,4 +473,63 @@ button {
 .divider {
   height: 1px;
   background: var(--line);
+}
+
+/* ===================== ready checklist (Today) ===================== */
+.ready-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ready-ico {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  flex: 0 0 auto;
+  background: var(--ginseng-wash);
+  color: var(--ginseng-deep);
+}
+.ready-check {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  background: var(--sage);
+  color: #fbf3e6;
+}
+.ready-anim .ready-item {
+  animation: readyIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ready-anim .ready-check {
+  animation: readyPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes readyIn {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes readyPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ready-anim .ready-item,
+  .ready-anim .ready-check {
+    animation: none;
+  }
 }
