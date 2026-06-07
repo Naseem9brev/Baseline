@@ -6,6 +6,9 @@ import { REPO_URL, STORE_URL } from '@/lib/config';
 const storeHref = STORE_URL || '#install';
 const ext = STORE_URL ? { target: '_blank', rel: 'noopener noreferrer' } : {};
 const repoExt = { target: '_blank', rel: 'noopener noreferrer' } as const;
+// Until the Web Store listing is live, the CTA leads to the install steps.
+const ctaLabel = STORE_URL ? 'Add to Chrome' : 'How to install';
+const ctaLabelLong = STORE_URL ? 'Add to Chrome — free' : 'How to install';
 
 export default function Home() {
   useEffect(() => {
@@ -75,7 +78,7 @@ export default function Home() {
                   <path d="M12 4v11M7 11l5 4 5-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M5 19h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
-                Add to Chrome
+                {ctaLabel}
               </a>
             </div>
           </nav>
@@ -101,7 +104,7 @@ export default function Home() {
                   <path d="M12 4v11M7 11l5 4 5-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M5 19h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
-                Add to Chrome — free
+                {ctaLabelLong}
               </a>
               <a className="btn-link" href={REPO_URL} {...repoExt}>
                 <svg viewBox="0 0 24 24" fill="none">
@@ -347,40 +350,73 @@ export default function Home() {
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">Get Baseline</span>
-            <h2>Install in a minute.</h2>
-            <p className="lede">Two ways in — straight from the Chrome Web Store, or build it yourself from source.</p>
+            <h2>Install in a few steps.</h2>
+            <p className="lede">
+              {STORE_URL
+                ? 'Two ways in — straight from the Chrome Web Store, or build it yourself from source.'
+                : 'Baseline is open source. Clone the repo, build it, and load it into Chrome — about five minutes.'}
+            </p>
           </div>
           <div className="install-grid">
-            <div className="install-card featured reveal" data-d="1">
-              <span className="badge">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M12 8h9M8.5 14l-4.5 7M15.5 14l-4.5 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                </svg>
-                Recommended
-              </span>
-              <h3>From the Chrome Web Store</h3>
-              <p>One click, automatic updates, ready to pin to your toolbar. The easiest way to start tomorrow morning.</p>
-              <a className="btn btn-primary" href={storeHref} {...ext} aria-label="Add Baseline to Chrome">
+            <div className={'install-card reveal' + (STORE_URL ? '' : ' featured')} data-d="1">
+              <span className="badge soft">From source</span>
+              <h3>Clone, build &amp; load it</h3>
+              <p>Run these in a terminal, then load the built folder into Chrome.</p>
+              <ol className="olist">
+                <li>
+                  Clone the repo:{' '}
+                  <code>git clone https://github.com/Naseem9brev/Baseline</code>
+                </li>
+                <li>Install dependencies: <code>npm install</code></li>
+                <li>Build the extension: <code>npm run build</code></li>
+                <li>
+                  Open <code>chrome://extensions</code> and turn on{' '}
+                  <strong>Developer mode</strong> (top-right).
+                </li>
+                <li>
+                  Click <strong>Load unpacked</strong> and choose the{' '}
+                  <code>.output/chrome-mv3</code> folder.
+                </li>
+                <li>Pin Baseline, click it to open the side panel, and do your first check-in.</li>
+              </ol>
+              <a className="btn btn-ghost" href={REPO_URL} {...repoExt} style={{ marginTop: 22 }}>
                 <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M12 4v11M7 11l5 4 5-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M5 19h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M9 4 4 12l5 8M15 4l5 8-5 8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                Add to Chrome
+                Open the repo on GitHub
               </a>
             </div>
-            <div className="install-card reveal" data-d="2">
-              <span className="badge soft">For developers</span>
-              <h3>Build &amp; load unpacked</h3>
-              <p>Prefer to run it from source? Build the extension and side-load it in four steps.</p>
-              <ol className="olist">
-                <li>Run <code>npm run build</code> in the project root.</li>
-                <li>Open <code>chrome://extensions</code>.</li>
-                <li>Toggle on <strong>Developer mode</strong> (top-right).</li>
-                <li>Click <strong>Load unpacked</strong> and choose <code>.output/chrome-mv3</code>.</li>
-              </ol>
-            </div>
+
+            {STORE_URL ? (
+              <div className="install-card featured reveal" data-d="2">
+                <span className="badge">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M12 8h9M8.5 14l-4.5 7M15.5 14l-4.5 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                  </svg>
+                  Recommended
+                </span>
+                <h3>From the Chrome Web Store</h3>
+                <p>One click, automatic updates, ready to pin to your toolbar.</p>
+                <a className="btn btn-primary" href={storeHref} {...ext} aria-label="Add Baseline to Chrome" style={{ marginTop: 20 }}>
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 4v11M7 11l5 4 5-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5 19h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                  Add to Chrome
+                </a>
+              </div>
+            ) : (
+              <div className="install-card reveal" data-d="2">
+                <span className="badge soft">Coming soon</span>
+                <h3>Chrome Web Store</h3>
+                <p>
+                  A one-click &ldquo;Add to Chrome&rdquo; listing is on the way. Until then, the steps
+                  on the left get you running in a few minutes.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>
